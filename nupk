@@ -1,0 +1,372 @@
+#!/bin/sh -e
+
+# The main dirs
+
+export NUPK_RESOURCES="/var/db/nupk" 
+export NUPK_ARTIFACTS="/var/cache/nupk"
+export NUPK_BUILDIR="/var/tmp/nupk"
+
+export NUPK_X="[\033[31;1mX\033[0m]" 
+export NUPK_O="[\033[32;1mO\033[0m]" 
+export NUPK_E="[\033[33;1m!\033[0m]" 
+export NUPK_W="[\033[34;1m?\033[0m]"
+
+build() {
+	# Call download
+
+	download $1
+
+	# Running as root is a terrible idea
+
+	if [ $USER == "root" ]
+	then
+		printf "$NUPK_X building packages as root is not permitted\n"
+		exit 1
+	fi
+
+	# Check that all dependencies are met, bail out at the first
+	# occurrence otherwise
+	
+	printf "$NUPK_O Checking if all dependencies are met...\n"
+	for i in $(< "$NUPK_RESOURCES/repository/$1/depends")
+	do
+		if [ ! -d "$NUPK_RESOURCES/installed/$i" ]
+		then
+			printf "$NUPK_X Package \033[31;1m$1\033[0m requires \033[31;1m$i\033[0m!\n"
+			exit 1
+		fi
+	done
+
+	# Create the build directory and enter it. If it exists already,
+	# delete it. The directory is kept around only if the package
+	# failed to build, so that it can be fixed by hand
+
+	printf "$NUPK_O Creating the temporary build directory...\n"
+	BUILDIR="$NUPK_BUILDIR/$1-build"
+	if [ -d $BUILDIR ]
+	then
+		rm -rf $BUILDIR 
+    fi
+    mkdir -p $BUILDIR
+    cd $BUILDIR
+
+    # Copy the main building script and all of the files
+    # defined in 'sources' that are local to the machine
+
+	printf "$NUPK_O Copying files...\n"
+    cp "$NUPK_RESOURCES/repository/$1/build" NUPK_script.sh
+
+	for i in $(< "$NUPK_RESOURCES/repository/$1/sources")
+	do
+		RESOURCE="$NUPK_RESOURCES/repository/$1/$i"
+		if [ -d $RESOURCE ]
+		then
+			cp $RESOURCE .
+		fi
+	done
+
+	# Copy all files that have been downloaded
+	# To be done: properly check which one are
+	# needed instead of copying whatever (not
+	# dangerous per se, just wasteful)
+
+	cp "$NUPK_ARTIFACTS/sources/$1/"* .
+
+	# Set DESTDIR and actually build the package
+
+	printf "$NUPK_O Start!\n"
+	export DESTDIR="$BUILDIR/$1-dump"
+	mkdir -p $DESTDIR
+	./NUPK_script.sh 
+
+	# Finalize the process by creating an archive out of the
+	# build directory, moving it to $NUPK_ARTIFACTS/binaries
+	# and deleting all leftovers from $NUPK_BUILDIR
+
+	printf "$NUPK_O Creating a suitable archive...\n" 
+	cd $DESTDIR
+	tar -czf "$1@$VERSION.tar.gz" *
+	mv "$1@$VERSION.tar.gz" "$NUPK_ARTIFACTS/binaries"
+
+	cd $NUPK_BUILDIR
+	rm -rf $BUILDIR
+
+	printf "$NUPK_O package \033[32;1m$1\033[0m built\n"
+}
+
+install() {
+	# Only root has permission to install packages
+
+	if [ $USER != "root" ]
+	then
+		printf "$NUPK_X installing packages as a regular user is not permitted\n"
+		exit 1
+	fi
+
+	# Create a manifest file out of the package archive
+
+	V=$(< "$NUPK_RESOURCES/repository/$1/version")
+	tar -tf "$NUPK_ARTIFACTS/binaries/$1@V.tar.gz" | sort -r | sed 's|^|/|g' > MANIFEST
+	printf "/\n" >> MANIFEST
+
+	# A distinction between a fresh installation
+	# and an upgrade ought to be established
+
+	if [ -e "$NUPK_RESOURCES/installed/$1"]
+	then
+		FILES=$(diff "$NUPK_RESOURCES/installed/$1/MANIFEST" MANIFEST | awk '/^>/{print $0}' | sed 's/^>\ //')
+	else
+		FILES=$(< MANIFEST)
+	fi
+
+	# if there's a file (not a directory!) that already exists, bail out
+
+	for i in $FILES
+	do
+		if [ -e $i ] && [ ! -d $i ]
+		then
+			printf "$NUPK_X file \033[31;1m$i\033[0m already exists!\n"
+			exit 1
+		fi
+	done
+
+	# If a package has to be updated, we first create a fake package
+	# containing all leftovers; then, we remove it.
+
+	if [ -e "$NUPK_RESOURCES/installed/$1"]
+	then
+		mkdir -p "$NUPK_RESOURCES/installed/$1-dummy"
+		diff "$NUPK_RESOURCES/installed/$1/MANIFEST" MANIFEST | awk '/^</{print $0}' | sed 's/^<\ //' > "$NUPK_RESOURCES/installed/$1-dummy"
+		remove $1-dummy
+	fi
+
+	# Copy all needed files from the repository and unpack the
+	# archive. Files are changed from lowercase to uppercase as
+	# a symbolic distinction
+
+	if [ ! -d "$NUPK_RESOURCES/installed/$1" ]
+	then
+		mkdir -p "$NUPK_RESOURCES/installed/$1"
+	fi
+
+	mv MANIFEST "$NUPK_RESOURCES/installed/$1/MANIFEST"
+	cp "$NUPK_RESOURCES/repology/$1/depends" "$NUPK_RESOURCES/installed/$1/DEPENDS"
+	cp "$NUPK_RESOURCES/repology/$1/info" "$NUPK_RESOURCES/installed/$1/INFO"
+	cp "$NUPK_RESOURCES/repology/$1/version" "$NUPK_RESOURCES/installed/$1/VERSION"
+	tar --no-same-owner -xf "$NUPK_ARTIFACTS/binaries/$1@V.tar.gz" -C /
+
+	printf "$NUPK_O package \033[32;1m$1\033[0m installed\n"
+}
+
+remove() {
+	# Only root has permission to remove packages
+
+	if [ $USER != "root" ]
+	then
+		printf "$NUPK_X removing packages as a regular user is not permitted\n"
+		exit 1
+	fi
+
+	# If the chosen package is a dependency, then is unremovable
+
+	for i in $(ls "$NUPK_RESOURCES/installed")
+	do
+		if [ ! -z $(grep -x $1 "$NUPK_RESOURCES/installed/$i/depends") ]
+		then
+			printf "$NUPK_X package \033[31;1m$1\033[0m is required by \033[31;1m$i\033[0m!\n"
+			exit 1
+		fi
+	done
+
+	# Remove all files one by one, unlinking symbolic
+	# links and removing only empty directories
+
+	for i in $(< "$NUPK_RESOURCES/installed/$1/MANIFEST")
+	do
+		if [ -f $i ]
+		then
+			printf "$NUPK_O file \033[32;1m$i\033[0m removed\n"
+			rm $i
+		elif [ -h $i ]
+		then
+			printf "$NUPK_O link \033[32;1m$i\033[0m removed\n"
+			unlink $i
+		elif [ -d $i ] && [ -z $i ]
+		then
+			printf "$NUPK_O directory \032[33;1m$i\033[0m removed\n"
+			rmdir $i
+		else
+			printf "$NUPK_E directory \033[33;1m$i\033[0m left untouched\n"			
+		fi
+	done
+
+	# Delete leftover files
+
+	rm -rf "$NUPK_RESOURCES/installed/$1"
+
+	printf "$NUPK_O package \033[32;1m$1\033[0m removed\n"
+}
+
+validate() {
+	# Check whether all files and/or directories reported in the manifest
+	# of a package actually exist. At the first occurrence of a missing
+	# file, report it and bail out
+
+	for i in $(< "$NUPK_RESOURCES/installed/$1/MANIFEST")
+	do 
+		if [ -d $i ] 
+		then
+			printf "$NUPK_O directory \033[32;1m$i\033[0m exists\n"
+		elif [ -e $i ]
+		then
+			printf "$NUPK_O file \033[32;1m$i\033[0m exists\n"		
+		else
+			printf "$NUPK_X file or directory \033[31;1m$i\033[0m does not exist!\n" 
+			exit 1 
+		fi
+	done
+}
+
+download() {
+	# Set all variables related to the package's version and export them,
+	# so that they are available to the building script
+
+	V="$NUPK_RESOURCES/repository/$1/version"
+	export VERSION=$(< $V)
+	export MAJOR=$(awk -F '.' '{print $1}' $V)
+	export MINOR=$(awk -F '.' '{print $2}' $V)
+	export PATCH=$(awk -F '.' '{print $3}' $V)
+
+	if [ ! -d "$NUPK_ARTIFACTS/sources/$1" ]
+	then
+		mkdir -p "$NUPK_ARTIFACTS/sources/$1"
+	fi
+
+	# This is a horrible hack
+
+    SOURCES=$(sed "s/{{VERSION}}/$VERSION/g; s/{{MAJOR}}/$MAJOR/g; s/{{MINOR}}/$MINOR/g; s/{{PATCH}}/$PATCH/g" "$NUPK_RESOURCES/repository/$1/sources") 
+
+	# Fetch tarballs, git repos and alike from the web
+
+	for r in $SOURCES
+	do
+		if [ ! -e "$NUPK_RESOURCES/repository/$1/$r" ]
+		then
+			case ${r##*.} in
+				git)
+					print "$NUPK_O Cloning \033[32;1m$r\033[0m from repository...\n"
+					if [ -d "$NUPK_ARTIFACTS/sources/$1/$1.git" ]
+					then
+						rm -rf "$NUPK_ARTIFACTS/sources/$1/$1.git"
+					fi
+					git clone $r "$NUPK_ARTIFACTS/sources/$1/$1.git"
+					;;
+				*)
+					B=$(basename $r)
+					print "$NUPK_O Downloading \033[32;1m$B\033[0m...\n"
+					if [ ! -e "$NUPK_ARTIFACTS/sources/$1/$B" ]
+					then
+						curl $r --output "$NUPK_ARTIFACTS/sources/$1/$B"
+					else
+						print "$NUPK_W file \033[34;1m$B\033[0m downloaded already!\n"
+					fi
+					;;
+			esac
+		fi
+	done
+
+	printf "$NUPK_O Done!\n"
+}
+
+update() {
+	# For each package in the repository, except from those cloned from a
+	# git repo, grab its latest version using Repology's open APIs. Three
+	# possibilities lie ahead:
+	#
+	# 1) Repology's version matches our own 
+	# 2) Repology's version is different from our own
+	# 3) Repology has no information on that package
+
+	for i in $(ls "$NUPK_RESOURCES/repository")
+	do
+		NEWVERSION=$(curl -s "https://repology.org/badge/latest-versions/$i.svg" | \
+					 awk '{ gsub(/>/, ">\n"); gsub(/</, "\n<"); gsub(/, /, ","); print }' | \
+					 awk -F ',' 'NR == 41 {print $NF}')
+		OLDVERSION=$(< "$NUPK_RESOURCES/repository/$i/version")
+
+		if [ $OLDVERSION == "git" ]
+		then
+			printf "$NUPK_W \033[34;1m$i\033[0m was installed from git, skipping...\n"
+		elif [ $NEWVERSION == "-" ]
+		then
+			printf "$NUPK_X \033[31;1m$i\033[0m not found on Repology!\n"
+		elif [ $NEWVERSION != $OLDVERSION ]
+		then
+			printf "$NUPK_E \033[33;1m$i\033[0m does not match: "
+			printf "you have \033[33;1m$OLDVERSION\033[0m but \033[33;1m$NEWVERSION\033[0m is available\n"
+		else
+			printf "$NUPK_O \033[32;1m$i\033[0m is up to date: version \033[32;1m$NEWVERSION\033[0m\n"
+		fi
+	done
+}
+
+### THE ACTUAL SCRIPT STARTS HERE ###
+
+while getopts "d:b:i:r:v:m:u" op
+do
+	# Check whether the three main directories exist
+	# To be done: also check whether their permissions have been set properly
+
+	for i in NUPK_RESOURCES NUPK_ARTIFACTS NUPK_BUILDIR
+	do
+		D=$(eval 'printf ${'"$i"'}')
+		if [ ! -e $D ]
+		then
+			print "$NUPK_X Directory \033[31;1m$i\033[0m, set as \033[31;1m$D\033[0m, does not exist!"
+			exit 1
+		fi
+	done
+
+	# Check if the package exist
+
+	if [ ! -z $OPTARG ]
+	then
+		if [ ! -e "$NUPK_RESOURCES/repository/$OPTARG" ]
+		then
+			printf "$NUPK_X package \033[31;1m$OPTARG\033[0m does not exist!\n"
+			exit 1
+		fi
+	fi
+
+	# Check if the package is installed
+
+	if [ $op == 'v' ] || [ $op == 'r' ]
+	then
+		if [ ! -e "$NUPK_RESOURCES/installed/$OPTARG" ]
+		then
+			printf "$NUPK_X package \033[31;1m$OPTARG\033[0m is not installed!\n"
+			exit 1
+		fi
+	fi
+
+	case $op in
+		d)
+			download $OPTARG
+			;;
+		b)
+			build $OPTARG
+			;;
+		i)
+			install $OPTARG
+			;; 
+        r)
+			remove $OPTARG
+			;;
+		v)
+			validate $OPTARG
+			;;
+		u)
+			update
+			;;
+	esac
+done
