@@ -8,9 +8,9 @@ export NUPK_SOURCES="/var/cache/nupk/sources"
 export NUPK_BINARIES="/var/cache/nupk/binaries"
 export NUPK_BUILDIR="/var/tmp/nupk"
 
-export NUPK_X="[\033[31;1mX\033[0m]" 
-export NUPK_O="[\033[32;1mO\033[0m]" 
-export NUPK_E="[\033[33;1m!\033[0m]" 
+export NUPK_X="[\033[31;1mX\033[0m]"
+export NUPK_O="[\033[32;1mO\033[0m]"
+export NUPK_E="[\033[33;1m!\033[0m]"
 export NUPK_W="[\033[34;1m?\033[0m]"
 
 build() {
@@ -28,7 +28,7 @@ build() {
 
 	# Check that all dependencies are met, bail out at the first
 	# occurrence otherwise
-	
+
 	printf "$NUPK_O Checking if all dependencies are met...\n"
 	for i in $(< "$NUPK_REPOSITORY/$1/depends")
 	do
@@ -47,16 +47,16 @@ build() {
 	BUILDIR="$NUPK_BUILDIR/$1-build"
 	if [ -d $BUILDIR ]
 	then
-		rm -rf $BUILDIR 
-    fi
-    mkdir -p $BUILDIR
-    cd $BUILDIR
+		rm -rf $BUILDIR
+	fi
+	mkdir -p $BUILDIR
+	cd $BUILDIR
 
-    # Copy the main building script and all of the files
-    # defined in 'sources' that are local to the machine
+	# Copy the main building script and all of the files
+	# defined in 'sources' that are local to the machine
 
 	printf "$NUPK_O Copying files...\n"
-    cp "$NUPK_REPOSITORY/$1/build" NUPK_script.sh
+	cp "$NUPK_REPOSITORY/$1/build" NUPK_script.sh
 
 	for i in $(< "$NUPK_REPOSITORY/$1/sources")
 	do
@@ -79,13 +79,13 @@ build() {
 	printf "$NUPK_O Start!\n"
 	export DESTDIR="$BUILDIR/$1-dump"
 	mkdir -p $DESTDIR
-	./NUPK_script.sh 
+	./NUPK_script.sh
 
 	# Finalize the process by creating an archive out of the
 	# build directory, moving it to $NUPK_BINARIES
 	# and deleting all leftovers from $NUPK_BUILDIR
 
-	printf "$NUPK_O Creating a suitable archive...\n" 
+	printf "$NUPK_O Creating a suitable archive...\n"
 	cd $DESTDIR
 	tar -czf "$1@$VERSION.tar.gz" *
 	mv "$1@$VERSION.tar.gz" "$NUPK_BINARIES"
@@ -198,7 +198,7 @@ remove() {
 			printf "$NUPK_O directory \032[33;1m$i\033[0m removed\n"
 			rmdir $i
 		else
-			printf "$NUPK_E directory \033[33;1m$i\033[0m left untouched\n"			
+			printf "$NUPK_E directory \033[33;1m$i\033[0m left untouched\n"
 		fi
 	done
 
@@ -215,16 +215,16 @@ validate() {
 	# file, report it and bail out
 
 	for i in $(< "$NUPK_INSTALLED/$1/MANIFEST")
-	do 
-		if [ -d $i ] 
+	do
+		if [ -d $i ]
 		then
 			printf "$NUPK_O directory \033[32;1m$i\033[0m exists\n"
 		elif [ -e $i ]
 		then
-			printf "$NUPK_O file \033[32;1m$i\033[0m exists\n"		
+			printf "$NUPK_O file \033[32;1m$i\033[0m exists\n"
 		else
-			printf "$NUPK_X file or directory \033[31;1m$i\033[0m does not exist!\n" 
-			exit 1 
+			printf "$NUPK_X file or directory \033[31;1m$i\033[0m does not exist!\n"
+			exit 1
 		fi
 	done
 }
@@ -246,7 +246,7 @@ download() {
 
 	# This is a horrible hack
 
-    SOURCES=$(sed "s/{{VERSION}}/$VERSION/g; s/{{MAJOR}}/$MAJOR/g; s/{{MINOR}}/$MINOR/g; s/{{PATCH}}/$PATCH/g" "$NUPK_REPOSITORY/$1/sources")
+	SOURCES=$(sed "s/{{VERSION}}/$VERSION/g; s/{{MAJOR}}/$MAJOR/g; s/{{MINOR}}/$MINOR/g; s/{{PATCH}}/$PATCH/g" "$NUPK_REPOSITORY/$1/sources")
 
 	# Fetch tarballs, git repos and alike from the web
 
@@ -286,14 +286,14 @@ update() {
 	# git repo, grab its latest version using Repology's open APIs. Three
 	# possibilities lie ahead:
 	#
-	# 1) Repology's version matches our own 
+	# 1) Repology's version matches our own
 	# 2) Repology's version is different from our own
 	# 3) Repology has no information on that package
 
 	for i in $(ls "$NUPK_REPOSITORY")
 	do
-		NEWVERSION=$(curl -s "https://repology.org/badge/latest-versions/$i.svg" | \
-					 awk '{ gsub(/>/, ">\n"); gsub(/</, "\n<"); gsub(/, /, ","); print }' | \
+		NEWVERSION=$(curl -s "https://repology.org/badge/latest-versions/$i.svg" |
+					 awk '{ gsub(/>/, ">\n"); gsub(/</, "\n<"); gsub(/, /, ","); print }' |
 					 awk -F ',' 'NR == 41 {print $NF}')
 		OLDVERSION=$(< "$NUPK_REPOSITORY/$i/version")
 
@@ -353,23 +353,23 @@ do
 	fi
 
 	case $op in
-		d)
-			download $OPTARG
-			;;
-		b)
-			build $OPTARG
-			;;
-		i)
-			install $OPTARG
-			;; 
-        r)
-			remove $OPTARG
-			;;
-		v)
-			validate $OPTARG
-			;;
-		u)
-			update
-			;;
+	d)
+		download $OPTARG
+		;;
+	b)
+		build $OPTARG
+		;;
+	i)
+		install $OPTARG
+		;;
+	r)
+		remove $OPTARG
+		;;
+	v)
+		validate $OPTARG
+		;;
+	u)
+		update
+		;;
 	esac
 done
