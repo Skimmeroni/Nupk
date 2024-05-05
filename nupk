@@ -232,7 +232,7 @@ download() {
 	# so that they are available to the building script
 
 	V="$NUPK_RESOURCES/repository/$1/version"
-	export VERSION=$(< $V)
+	export VERSION=$(cat $V)
 	export MAJOR=$(awk -F '.' '{print $1}' $V)
 	export MINOR=$(awk -F '.' '{print $2}' $V)
 	export PATCH=$(awk -F '.' '{print $3}' $V)
@@ -252,26 +252,27 @@ download() {
 	do
 		if [ ! -e "$NUPK_RESOURCES/repository/$1/$r" ]
 		then
-			case ${r##*.} in
-				git)
-					print "$NUPK_O Cloning \033[32;1m$r\033[0m from repository...\n"
-					if [ -d "$NUPK_ARTIFACTS/sources/$1/$1.git" ]
-					then
-						rm -rf "$NUPK_ARTIFACTS/sources/$1/$1.git"
-					fi
+			if [ ${r##*.} == git ] || [ ${r::3} == git ]
+			then
+				printf "$NUPK_O Cloning \033[32;1m$r\033[0m from repository...\n"
+				if [ -d "$NUPK_ARTIFACTS/sources/$1/$1.git" ]
+				then
+					cd "$NUPK_ARTIFACTS/sources/$1/$1.git"
+					git pull
+					cd $OLDPWD
+				else
 					git clone $r "$NUPK_ARTIFACTS/sources/$1/$1.git"
-					;;
-				*)
-					B=$(basename $r)
-					print "$NUPK_O Downloading \033[32;1m$B\033[0m...\n"
-					if [ ! -e "$NUPK_ARTIFACTS/sources/$1/$B" ]
-					then
-						curl $r --output "$NUPK_ARTIFACTS/sources/$1/$B"
-					else
-						print "$NUPK_W file \033[34;1m$B\033[0m downloaded already!\n"
-					fi
-					;;
-			esac
+				fi
+			else
+				B=$(basename $r)
+				printf "$NUPK_O Downloading \033[32;1m$B\033[0m...\n"
+				if [ ! -e "$NUPK_ARTIFACTS/sources/$1/$B" ]
+				then
+					curl $r --output "$NUPK_ARTIFACTS/sources/$1/$B"
+				else
+					printf "$NUPK_W file \033[34;1m$B\033[0m downloaded already!\n"
+				fi
+			fi
 		fi
 	done
 
