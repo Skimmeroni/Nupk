@@ -150,9 +150,9 @@ install() {
 	fi
 
 	mv MANIFEST "$NUPK_RESOURCES/installed/$1/MANIFEST"
-	cp "$NUPK_RESOURCES/repology/$1/depends" "$NUPK_RESOURCES/installed/$1/DEPENDS"
-	cp "$NUPK_RESOURCES/repology/$1/info" "$NUPK_RESOURCES/installed/$1/INFO"
-	cp "$NUPK_RESOURCES/repology/$1/version" "$NUPK_RESOURCES/installed/$1/VERSION"
+	cp "$NUPK_RESOURCES/repository/$1/depends" "$NUPK_RESOURCES/installed/$1/DEPENDS"
+	cp "$NUPK_RESOURCES/repository/$1/info" "$NUPK_RESOURCES/installed/$1/INFO"
+	cp "$NUPK_RESOURCES/repository/$1/version" "$NUPK_RESOURCES/installed/$1/VERSION"
 	tar --no-same-owner -xf "$NUPK_ARTIFACTS/binaries/$1@V.tar.gz" -C /
 
 	printf "$NUPK_O package \033[32;1m$1\033[0m installed\n"
