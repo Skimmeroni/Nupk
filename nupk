@@ -224,7 +224,7 @@ validate() {
 	# of a package actually exist. At the first occurrence of a missing
 	# file, report it and bail out
 
-	for i in $(< "$NUPK_INSTALLED/$1/MANIFEST")
+	for i in $(cat "$NUPK_INSTALLED/$1/MANIFEST")
 	do
 		if [ -d $i ]
 		then
