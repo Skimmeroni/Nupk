@@ -183,7 +183,7 @@ remove() {
 
 	for i in $(ls "$NUPK_INSTALLED")
 	do
-		if [ ! -z $(grep -x $1 "$NUPK_INSTALLED/$i/depends") ]
+		if [ ! -z $(grep -x $1 "$NUPK_INSTALLED/$i/DEPENDS") ]
 		then
 			printf "$NUPK_X Package \033[31;1m$1\033[0m is required by \033[31;1m$i\033[0m!\n"
 			exit 1
@@ -193,20 +193,20 @@ remove() {
 	# Remove all files one by one, unlinking symbolic
 	# links and removing only empty directories
 
-	for i in $(< "$NUPK_INSTALLED/$1/MANIFEST")
+	for i in $(cat "$NUPK_INSTALLED/$1/MANIFEST")
 	do
 		if [ -f $i ]
 		then
-			printf "$NUPK_O File \033[32;1m$i\033[0m removed\n"
 			rm $i
+			printf "$NUPK_O File \033[32;1m$i\033[0m removed\n"
 		elif [ -h $i ]
 		then
-			printf "$NUPK_O Link \033[32;1m$i\033[0m removed\n"
 			unlink $i
-		elif [ -d $i ] && [ -z $i ]
+			printf "$NUPK_O Link \033[32;1m$i\033[0m removed\n"
+		elif [ $(ls -A $i | wc -l) == 0 ]
 		then
-			printf "$NUPK_O Directory \032[33;1m$i\033[0m removed\n"
 			rmdir $i
+			printf "$NUPK_O Directory \033[32;1m$i\033[0m removed\n"
 		else
 			printf "$NUPK_E Directory \033[33;1m$i\033[0m left untouched\n"
 		fi
