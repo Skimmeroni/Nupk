@@ -132,14 +132,24 @@ install() {
 		fi
 	done
 
-	# If a package has to be updated, we first create a fake package
-	# containing all leftovers; then, we remove it.
+	# If a package has to be updated, we remove all leftovers
 
 	if [ -e "$NUPK_INSTALLED/$1" ]
 	then
-		mkdir -p "$NUPK_INSTALLED/$1-dummy"
-		diff "$NUPK_INSTALLED/$1/MANIFEST" MANIFEST | awk '/^</{print $0}' | sed 's/^<\ //' > "$NUPK_INSTALLED/$1-dummy"
-		remove $1-dummy
+		diff "$NUPK_INSTALLED/$1/MANIFEST" MANIFEST | awk '/^</{print $0}' | sed 's/^<\ //' > LEFTOVERS
+		for i in LEFTOVERS
+		do
+			if [ -f $i ]
+			then
+				rm $i
+			elif [ -h $i ]
+			then
+				unlink $i
+			elif [ -d $i ] && [ -z $i ]
+			then
+				rmdir $i
+			fi
+		done
 	fi
 
 	# Copy all needed files from the repository and unpack the
