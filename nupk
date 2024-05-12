@@ -107,18 +107,18 @@ install() {
 
 	# Create a manifest file out of the package archive
 
-	V=$(< "$NUPK_REPOSITORY/$1/version")
-	tar -tf "$NUPK_BINARIES/$1@V.tar.gz" | sort -r | sed 's|^|/|g' > MANIFEST
+	V=$(cat "$NUPK_REPOSITORY/$1/version")
+	tar -tf "$NUPK_BINARIES/$1@$V.tar.gz" | sort -r | sed 's|^|/|g' > MANIFEST
 	printf "/\n" >> MANIFEST
 
 	# A distinction between a fresh installation
 	# and an upgrade ought to be established
 
-	if [ -e "$NUPK_INSTALLED/$1"]
+	if [ -e "$NUPK_INSTALLED/$1" ]
 	then
 		FILES=$(diff "$NUPK_INSTALLED/$1/MANIFEST" MANIFEST | awk '/^>/{print $0}' | sed 's/^>\ //')
 	else
-		FILES=$(< MANIFEST)
+		FILES=$(cat MANIFEST)
 	fi
 
 	# if there's a file (not a directory!) that already exists, bail out
@@ -135,7 +135,7 @@ install() {
 	# If a package has to be updated, we first create a fake package
 	# containing all leftovers; then, we remove it.
 
-	if [ -e "$NUPK_INSTALLED/$1"]
+	if [ -e "$NUPK_INSTALLED/$1" ]
 	then
 		mkdir -p "$NUPK_INSTALLED/$1-dummy"
 		diff "$NUPK_INSTALLED/$1/MANIFEST" MANIFEST | awk '/^</{print $0}' | sed 's/^<\ //' > "$NUPK_INSTALLED/$1-dummy"
@@ -155,7 +155,7 @@ install() {
 	cp "$NUPK_REPOSITORY/$1/depends" "$NUPK_INSTALLED/$1/DEPENDS"
 	cp "$NUPK_REPOSITORY/$1/info" "$NUPK_INSTALLED/$1/INFO"
 	cp "$NUPK_REPOSITORY/$1/version" "$NUPK_INSTALLED/$1/VERSION"
-	tar --no-same-owner -xf "$NUPK_BINARIES/$1@V.tar.gz" -C /
+	tar --no-same-owner -xf "$NUPK_BINARIES/$1@$V.tar.gz" -C /
 
 	printf "$NUPK_O Package \033[32;1m$1\033[0m installed\n"
 }
