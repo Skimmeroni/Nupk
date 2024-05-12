@@ -326,7 +326,7 @@ update() {
 
 ### THE ACTUAL SCRIPT STARTS HERE ###
 
-while getopts "d:b:i:r:v:m:u" op
+while getopts "d:b:i:r:v:u" op
 do
 	# Check whether the three main directories exist
 	# To be done: also check whether their permissions have been set properly
