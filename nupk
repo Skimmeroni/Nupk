@@ -6,7 +6,7 @@ export NUPK_REPOSITORY="/var/db/nupk/repository/repository"
 export NUPK_INSTALLED="/var/db/nupk/installed"
 export NUPK_SOURCES="/var/cache/nupk/sources"
 export NUPK_BINARIES="/var/cache/nupk/binaries"
-export NUPK_BUILDIR="/var/tmp/nupk"
+export NUPK_WORKDIR="/var/tmp/nupk"
 
 export NUPK_X="[\033[31;1mX\033[0m]"
 export NUPK_O="[\033[32;1mO\033[0m]"
@@ -39,17 +39,19 @@ build() {
 		fi
 	done
 
-	# Create the build directory and enter it. If it exists already,
-	# delete it. The directory is kept around only if the package
-	# failed to build, so that it can be fixed by hand
+	# Create the working directory; if it exists already, delete it.
+	# The directory is kept around only if the package failed to build,
+	# so that it can be fixed by hand
 
-	printf "$NUPK_O Creating the temporary build directory...\n"
-	BUILDIR="$NUPK_BUILDIR/$1-build"
-	if [ -d $BUILDIR ]
+	printf "$NUPK_O Creating the temporary working directory...\n"
+	if [ -d "$NUPK_WORKDIR/$1" ]
 	then
-		rm -rf $BUILDIR
+		rm -rf "$NUPK_WORKDIR/$1"
 	fi
+	BUILDIR="$NUPK_WORKDIR/$1/NUPK_buildir"
+	DESTDIR="$NUPK_WORKDIR/$1/NUPK_dump"
 	mkdir -p $BUILDIR
+	mkdir -p $DESTDIR
 	cd $BUILDIR
 
 	# Copy the main building script and all of the files
@@ -74,24 +76,22 @@ build() {
 
 	cp "$NUPK_SOURCES/$1/"* .
 
-	# Set DESTDIR and actually build the package
+	# Export DESTDIR and actually build the package
 
+	export DESTDIR
 	printf "$NUPK_O Start!\n"
-	export DESTDIR="$BUILDIR/$1-dump"
-	mkdir -p $DESTDIR
 	./NUPK_script.sh
 
 	# Finalize the process by creating an archive out of the
 	# build directory, moving it to $NUPK_BINARIES
-	# and deleting all leftovers from $NUPK_BUILDIR
+	# and deleting all leftovers from $NUPK_WORKDIR
 
 	printf "$NUPK_O Creating a suitable archive...\n"
 	cd $DESTDIR
 	tar -czf "$1@$VERSION.tar.gz" *
 	mv "$1@$VERSION.tar.gz" "$NUPK_BINARIES"
 
-	cd $NUPK_BUILDIR
-	rm -rf $BUILDIR
+	rm -rf "$NUPK_WORKDIR/$1"
 
 	printf "$NUPK_O Package \033[32;1m$1\033[0m built\n"
 }
@@ -321,7 +321,7 @@ do
 	# Check whether the three main directories exist
 	# To be done: also check whether their permissions have been set properly
 
-	for i in NUPK_REPOSITORY NUPK_INSTALLED NUPK_BINARIES NUPK_SOURCES NUPK_BUILDIR
+	for i in NUPK_REPOSITORY NUPK_INSTALLED NUPK_BINARIES NUPK_SOURCES NUPK_WORKDIR
 	do
 		D=$(eval 'printf ${'"$i"'}')
 		if [ ! -e $D ]
