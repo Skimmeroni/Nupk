@@ -145,7 +145,7 @@ install() {
 			elif [ -h $i ]
 			then
 				unlink $i
-			elif [ -d $i ] && [ -z $i ]
+			elif [ $(ls -A $i | wc -l) == 0 ]
 			then
 				rmdir $i
 			fi
