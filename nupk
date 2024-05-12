@@ -93,7 +93,7 @@ build() {
 	cd $NUPK_BUILDIR
 	rm -rf $BUILDIR
 
-	printf "$NUPK_O package \033[32;1m$1\033[0m built\n"
+	printf "$NUPK_O Package \033[32;1m$1\033[0m built\n"
 }
 
 install() {
@@ -101,7 +101,7 @@ install() {
 
 	if [ $USER != "root" ]
 	then
-		printf "$NUPK_X installing packages as a regular user is not permitted\n"
+		printf "$NUPK_X Installing packages as a regular user is not permitted\n"
 		exit 1
 	fi
 
@@ -127,7 +127,7 @@ install() {
 	do
 		if [ -e $i ] && [ ! -d $i ]
 		then
-			printf "$NUPK_X file \033[31;1m$i\033[0m already exists!\n"
+			printf "$NUPK_X File \033[31;1m$i\033[0m already exists!\n"
 			exit 1
 		fi
 	done
@@ -157,7 +157,7 @@ install() {
 	cp "$NUPK_REPOSITORY/$1/version" "$NUPK_INSTALLED/$1/VERSION"
 	tar --no-same-owner -xf "$NUPK_BINARIES/$1@V.tar.gz" -C /
 
-	printf "$NUPK_O package \033[32;1m$1\033[0m installed\n"
+	printf "$NUPK_O Package \033[32;1m$1\033[0m installed\n"
 }
 
 remove() {
@@ -165,7 +165,7 @@ remove() {
 
 	if [ $USER != "root" ]
 	then
-		printf "$NUPK_X removing packages as a regular user is not permitted\n"
+		printf "$NUPK_X Removing packages as a regular user is not permitted\n"
 		exit 1
 	fi
 
@@ -175,7 +175,7 @@ remove() {
 	do
 		if [ ! -z $(grep -x $1 "$NUPK_INSTALLED/$i/depends") ]
 		then
-			printf "$NUPK_X package \033[31;1m$1\033[0m is required by \033[31;1m$i\033[0m!\n"
+			printf "$NUPK_X Package \033[31;1m$1\033[0m is required by \033[31;1m$i\033[0m!\n"
 			exit 1
 		fi
 	done
@@ -187,18 +187,18 @@ remove() {
 	do
 		if [ -f $i ]
 		then
-			printf "$NUPK_O file \033[32;1m$i\033[0m removed\n"
+			printf "$NUPK_O File \033[32;1m$i\033[0m removed\n"
 			rm $i
 		elif [ -h $i ]
 		then
-			printf "$NUPK_O link \033[32;1m$i\033[0m removed\n"
+			printf "$NUPK_O Link \033[32;1m$i\033[0m removed\n"
 			unlink $i
 		elif [ -d $i ] && [ -z $i ]
 		then
-			printf "$NUPK_O directory \032[33;1m$i\033[0m removed\n"
+			printf "$NUPK_O Directory \032[33;1m$i\033[0m removed\n"
 			rmdir $i
 		else
-			printf "$NUPK_E directory \033[33;1m$i\033[0m left untouched\n"
+			printf "$NUPK_E Directory \033[33;1m$i\033[0m left untouched\n"
 		fi
 	done
 
@@ -206,7 +206,7 @@ remove() {
 
 	rm -rf "$NUPK_INSTALLED/$1"
 
-	printf "$NUPK_O package \033[32;1m$1\033[0m removed\n"
+	printf "$NUPK_O Package \033[32;1m$1\033[0m removed\n"
 }
 
 validate() {
@@ -218,12 +218,12 @@ validate() {
 	do
 		if [ -d $i ]
 		then
-			printf "$NUPK_O directory \033[32;1m$i\033[0m exists\n"
+			printf "$NUPK_O Directory \033[32;1m$i\033[0m exists\n"
 		elif [ -e $i ]
 		then
-			printf "$NUPK_O file \033[32;1m$i\033[0m exists\n"
+			printf "$NUPK_O File \033[32;1m$i\033[0m exists\n"
 		else
-			printf "$NUPK_X file or directory \033[31;1m$i\033[0m does not exist!\n"
+			printf "$NUPK_X File or directory \033[31;1m$i\033[0m does not exist!\n"
 			exit 1
 		fi
 	done
@@ -272,7 +272,7 @@ download() {
 				then
 					curl $r --output "$NUPK_SOURCES/$1/$B"
 				else
-					printf "$NUPK_W file \033[34;1m$B\033[0m downloaded already!\n"
+					printf "$NUPK_W File \033[34;1m$B\033[0m downloaded already!\n"
 				fi
 			fi
 		fi
@@ -337,7 +337,7 @@ do
 	then
 		if [ ! -e "$NUPK_REPOSITORY/$OPTARG" ]
 		then
-			printf "$NUPK_X package \033[31;1m$OPTARG\033[0m does not exist!\n"
+			printf "$NUPK_X Package \033[31;1m$OPTARG\033[0m does not exist!\n"
 			exit 1
 		fi
 	fi
@@ -348,7 +348,7 @@ do
 	then
 		if [ ! -e "$NUPK_INSTALLED/$OPTARG" ]
 		then
-			printf "$NUPK_X package \033[31;1m$OPTARG\033[0m is not installed!\n"
+			printf "$NUPK_X Package \033[31;1m$OPTARG\033[0m is not installed!\n"
 			exit 1
 		fi
 	fi
