@@ -76,7 +76,7 @@ build() {
 
 	if [ $(ls -A "$NUPK_SOURCES/$1" | wc -l) != 0 ]
 	then
-		cp "$NUPK_SOURCES/$1/"* .
+		cp -r "$NUPK_SOURCES/$1/"* .
 	fi
 
 	# Export DESTDIR and actually build the package
