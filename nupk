@@ -60,10 +60,10 @@ build() {
 	printf "$NUPK_O Copying files...\n"
 	cp "$NUPK_REPOSITORY/$1/build" NUPK_script.sh
 
-	for i in $(< "$NUPK_REPOSITORY/$1/sources")
+	for i in $(cat "$NUPK_REPOSITORY/$1/sources")
 	do
 		RESOURCE="$NUPK_REPOSITORY/$1/$i"
-		if [ -d $RESOURCE ]
+		if [ -e $RESOURCE ]
 		then
 			cp $RESOURCE .
 		fi
@@ -74,7 +74,10 @@ build() {
 	# needed instead of copying whatever (not
 	# dangerous per se, just wasteful)
 
-	cp "$NUPK_SOURCES/$1/"* .
+	if [ $(ls -A "$NUPK_SOURCES/$1" | wc -l) != 0 ]
+	then
+		cp "$NUPK_SOURCES/$1/"* .
+	fi
 
 	# Export DESTDIR and actually build the package
 
