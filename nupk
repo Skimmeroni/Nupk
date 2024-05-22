@@ -74,7 +74,7 @@ build() {
 	# needed instead of copying whatever (not
 	# dangerous per se, just wasteful)
 
-	if [ $(ls -A "$NUPK_SOURCES/$1" | wc -l) != 0 ]
+	if [ $(ls -A "$NUPK_SOURCES/$1" | wc -l) -ne 0 ]
 	then
 		cp -r "$NUPK_SOURCES/$1/"* .
 	fi
@@ -148,7 +148,7 @@ install() {
 			elif [ -h $i ]
 			then
 				unlink $i
-			elif [ $(ls -A $i | wc -l) = 0 ]
+			elif [ $(ls -A $i | wc -l) -eq 0 ]
 			then
 				rmdir $i
 			fi
@@ -206,7 +206,7 @@ remove() {
 		then
 			unlink $i
 			printf "$NUPK_O Link \033[32;1m$i\033[0m removed\n"
-		elif [ $(ls -A $i | wc -l) = 0 ]
+		elif [ $(ls -A $i | wc -l) -eq 0 ]
 		then
 			rmdir $i
 			printf "$NUPK_O Directory \033[32;1m$i\033[0m removed\n"
