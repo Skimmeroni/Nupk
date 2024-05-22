@@ -20,7 +20,7 @@ build() {
 
 	# Running as root is a terrible idea
 
-	if [ $USER == "root" ]
+	if [ $USER = "root" ]
 	then
 		printf "$NUPK_X building packages as root is not permitted\n"
 		exit 1
@@ -148,7 +148,7 @@ install() {
 			elif [ -h $i ]
 			then
 				unlink $i
-			elif [ $(ls -A $i | wc -l) == 0 ]
+			elif [ $(ls -A $i | wc -l) = 0 ]
 			then
 				rmdir $i
 			fi
@@ -206,7 +206,7 @@ remove() {
 		then
 			unlink $i
 			printf "$NUPK_O Link \033[32;1m$i\033[0m removed\n"
-		elif [ $(ls -A $i | wc -l) == 0 ]
+		elif [ $(ls -A $i | wc -l) = 0 ]
 		then
 			rmdir $i
 			printf "$NUPK_O Directory \033[32;1m$i\033[0m removed\n"
@@ -267,7 +267,7 @@ download() {
 	do
 		if [ ! -e "$NUPK_REPOSITORY/$1/$r" ]
 		then
-			if [ ${r##*.} == git ] || [ ${r::3} == git ]
+			if [ ${r##*.} = git ] || [ ${r::3} = git ]
 			then
 				printf "$NUPK_O Cloning \033[32;1m$r\033[0m from repository...\n"
 				if [ -d "$NUPK_SOURCES/$1/$1.git" ]
@@ -308,13 +308,13 @@ update() {
 		NAME=$(cat "$NUPK_REPOSITORY/$i/name")
 		NEWVERSION=$(curl -s "https://repology.org/badge/latest-versions/$NAME.svg" |
 					 awk '{ gsub(/>/, ">\n"); gsub(/</, "\n<"); gsub(/, /, ","); print }' |
-					 awk -F ',' 'NR == 41 {print $NF}')
+					 awk -F ',' 'NR = 41 {print $NF}')
 		OLDVERSION=$(cat "$NUPK_REPOSITORY/$i/version")
 
-		if [ $OLDVERSION == "git" ]
+		if [ $OLDVERSION = "git" ]
 		then
 			printf "$NUPK_W \033[34;1m$i\033[0m was installed from git, skipping...\n"
-		elif [ $NEWVERSION == "-" ]
+		elif [ $NEWVERSION = "-" ]
 		then
 			printf "$NUPK_X \033[31;1m$i\033[0m not found on Repology!\n"
 		elif [ $NEWVERSION != $OLDVERSION ]
@@ -357,7 +357,7 @@ do
 
 	# Check if the package is installed
 
-	if [ $op == 'v' ] || [ $op == 'r' ]
+	if [ $op = 'v' ] || [ $op = 'r' ]
 	then
 		if [ ! -e "$NUPK_INSTALLED/$OPTARG" ]
 		then
