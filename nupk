@@ -293,7 +293,7 @@ download() {
 				printf "$NUPK_O Downloading \033[32;1m$B\033[0m...\n"
 				if [ ! -e "$NUPK_SOURCES/$1/$B" ]
 				then
-					curl $r --output "$NUPK_SOURCES/$1/$B"
+					curl $r -L --output "$NUPK_SOURCES/$1/$B"
 				else
 					printf "$NUPK_W File \033[34;1m$B\033[0m downloaded already!\n"
 				fi
