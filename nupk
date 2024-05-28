@@ -275,9 +275,7 @@ download() {
 	do
 		if [ ! -e "$NUPK_REPOSITORY/$1/$r" ]
 		then
-			H=$(echo $r | cut -c 1-3)
-			T=$(echo $r | rev | cut -c 1-3 | rev)
-			if [ $H = "git" ] || [ $T = "git" ]
+			if [ ! -z $(cat $r | grep -E '[\.]?git[:]?') ]
 			then
 				printf "$NUPK_O Cloning \033[32;1m$r\033[0m from repository...\n"
 				if [ -d "$NUPK_SOURCES/$1/$1.git" ]
