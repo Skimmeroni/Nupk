@@ -317,14 +317,14 @@ update() {
 	do
 		NAME=$(cat "$NUPK_REPOSITORY/$i/name")
 		NEWVERSION=$(curl -s "https://repology.org/badge/latest-versions/$NAME.svg" |
-					 awk '{ gsub(/>/, ">\n"); gsub(/</, "\n<"); gsub(/, /, ","); print }' |
-					 awk -F ',' 'NR = 41 {print $NF}')
+				grep -Eo '[0-9]+(\.[0-9]*)*[,]? [0-9]+(\.[0-9]*)*</text></g>|-</text></g>' |
+				awk -F ',' '{print $1}')
 		OLDVERSION=$(cat "$NUPK_REPOSITORY/$i/version")
 
 		if [ $OLDVERSION = "git" ]
 		then
 			printf "$NUPK_W \033[34;1m$i\033[0m was installed from git, skipping...\n"
-		elif [ $NEWVERSION = "-" ]
+		elif [ $NEWVERSION = "-</text></g>" ]
 		then
 			printf "$NUPK_X \033[31;1m$i\033[0m not found on Repology!\n"
 		elif [ $NEWVERSION != $OLDVERSION ]
