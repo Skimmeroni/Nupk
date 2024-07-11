@@ -205,7 +205,10 @@ validate() {
 
 	for i in $(cat "$NUPK_INSTALLED/$1/MANIFEST")
 	do
-		if [ -d $i ]
+		if [ -h $i ]
+		then
+			printf "$NUPK_O Symbolic link \033[32;1m$i\033[0m exists\n"
+		elif [ -d $i ]
 		then
 			printf "$NUPK_O Directory \033[32;1m$i\033[0m exists\n"
 		elif [ -e $i ]
