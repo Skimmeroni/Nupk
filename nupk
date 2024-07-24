@@ -77,18 +77,13 @@ build() {
 	printf "$NUPK_O Start!\n"
 	./NUPK_script.sh
 
-	# Finalize the process by creating an archive out of the
-	# build directory, moving it to $NUPK_BINARIES
-	# and deleting all leftovers from $NUPK_WORKDIR
+	# Finalize the process by moving the archive to
+	# $NUPK_BINARIES and deleting all leftovers from
+	# $NUPK_WORKDIR
 
-	printf "$NUPK_O Creating a suitable archive...\n"
-	cd $DESTDIR
-	tar -czf "$1@$VERSION.tar.gz" *
 	mv "$1@$VERSION.tar.gz" "$NUPK_BINARIES"
-
 	rm -rf "$NUPK_WORKDIR/$1"
-
-	printf "$NUPK_O Package \033[32;1m$1\033[0m built\n"
+	printf "$NUPK_O Package \033[32;1m$1\033[0m built and saved in $NUPK_BINARIES\n"
 }
 
 install() {
@@ -149,7 +144,7 @@ install() {
 
 	mv MANIFEST "$NUPK_INSTALLED/$1/MANIFEST"
 	cp "$NUPK_REPOSITORY/$1/data" "$NUPK_INSTALLED/$1/DATA"
-	gzip -cd "$NUPK_BINARIES/$1@$V.tar.gz" | tar --no-same-owner -x -C /
+	gzip -cd "$NUPK_BINARIES/$1@$V.tar.gz" | tar -x -C /
 
 	printf "$NUPK_O Package \033[32;1m$1\033[0m installed\n"
 }
