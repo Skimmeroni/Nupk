@@ -94,7 +94,7 @@ build() {
 install() {
 	# Create a manifest file out of the package archive
 	
-	tar -tf "$NUPK_BINARIES/$1@$VERSION.tar.gz" | sort -r | sed 's|^|/|g' > MANIFEST
+	gzip -cd "$NUPK_BINARIES/$1@$VERSION.tar.gz" | tar -t | sort -r | sed 's|^|/|g' > MANIFEST
 	printf "/\n" >> MANIFEST
 
 	# A distinction between a fresh installation
@@ -149,7 +149,7 @@ install() {
 
 	mv MANIFEST "$NUPK_INSTALLED/$1/MANIFEST"
 	cp "$NUPK_REPOSITORY/$1/data" "$NUPK_INSTALLED/$1/DATA"
-	tar --no-same-owner -xf "$NUPK_BINARIES/$1@$V.tar.gz" -C /
+	gzip -cd "$NUPK_BINARIES/$1@$V.tar.gz" | tar --no-same-owner -x -C /
 
 	printf "$NUPK_O Package \033[32;1m$1\033[0m installed\n"
 }
