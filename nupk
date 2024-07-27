@@ -81,7 +81,9 @@ build() {
 	# $NUPK_BINARIES and deleting all leftovers from
 	# $NUPK_WORKDIR
 
+	su
 	mv "$1@$VERSION.tar.gz" "$NUPK_BINARIES"
+	exit
 	rm -rf "$NUPK_WORKDIR/$1"
 	printf "$NUPK_O Package \033[32;1m$1\033[0m built and saved in $NUPK_BINARIES\n"
 }
