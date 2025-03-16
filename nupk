@@ -14,19 +14,6 @@ export NUPK_E="[\033[33;1m!\033[0m]"
 export NUPK_W="[\033[34;1m?\033[0m]"
 
 build() {
-	# Check that all dependencies are met, bail out at the first
-	# occurrence otherwise
-
-	printf "$NUPK_O Checking if all dependencies are met...\n"
-	for i in $DEPENDENCIES
-	do
-		if [ ! -d "$NUPK_INSTALLED/$i" ]
-		then
-			printf "$NUPK_X Package \033[31;1m$1\033[0m requires \033[31;1m$i\033[0m!\n"
-			exit 1
-		fi
-	done
-
 	# Create the working directory; if it exists already, delete it.
 	# The directory is kept around only if the package failed to build,
 	# so that it can be fixed by hand
@@ -148,20 +135,6 @@ install() {
 }
 
 remove() {
-	# If the chosen package is a dependency, then is unremovable
-
-	for i in $(ls "$NUPK_INSTALLED")
-	do
-		source "$NUPK_REPOSITORY/$i/data"
-		for j in $SOURCES
-		if [ "$j" = "$1" ] && [ "$i" != "$1" ]
-		then
-			printf "$NUPK_X Package \033[31;1m$1\033[0m is required by \033[31;1m$i\033[0m!\n"
-			exit 1
-		fi
-		done
-	done
-
 	# Remove all files one by one, unlinking symbolic
 	# links and removing only empty directories
 
