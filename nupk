@@ -14,10 +14,6 @@ export NUPK_E="[\033[33;1m!\033[0m]"
 export NUPK_W="[\033[34;1m?\033[0m]"
 
 build() {
-	# Call download
-
-	download $1
-
 	# Check that all dependencies are met, bail out at the first
 	# occurrence otherwise
 
@@ -91,7 +87,7 @@ build() {
 install() {
 	# Create a manifest file out of the package archive
 	
-	gzip -cd "$NUPK_BINARIES/$1@$VERSION.tar.gz" | tar -t | sort -r | sed 's|^|/|g' > MANIFEST
+	gzip -cd "$NUPK_BINARIES/$1@$VERSION.tar.gz" | tar -t | sort -r | sed 's|^|/|g' | awk '{print $1}' > MANIFEST
 	printf "/\n" >> MANIFEST
 
 	# A distinction between a fresh installation
@@ -321,6 +317,7 @@ do
 		download $OPTARG
 		;;
 	b)
+		download $OPTARG
 		build $OPTARG
 		;;
 	i)
