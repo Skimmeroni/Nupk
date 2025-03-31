@@ -4,7 +4,6 @@
 
 export NUPK_REPOSITORY="/var/db/nupk/repository"
 export NUPK_INSTALLED="/var/db/nupk/installed"
-export NUPK_SOURCES="/var/cache/nupk/sources"
 export NUPK_BINARIES="/var/cache/nupk/binaries"
 export NUPK_WORKDIR="/var/tmp/nupk"
 
@@ -23,42 +22,21 @@ build() {
 	then
 		rm -rf "$NUPK_WORKDIR/$1"
 	fi
+
 	BUILDIR="$NUPK_WORKDIR/$1/NUPK_buildir"
-	DESTDIR="$NUPK_WORKDIR/$1/NUPK_dump"
 	mkdir -p $BUILDIR
-	mkdir -p $DESTDIR
 	cd $BUILDIR
 
 	# Copy the main building script and all of the files
 	# defined in 'sources' that are local to the machine
 
 	printf "$NUPK_O Copying files...\n"
-	cp "$NUPK_REPOSITORY/$1/build" NUPK_script.sh
+	cp -r "$NUPK_REPOSITORY/$1/*" .
 
-	for i in $DEPENDENCIES
-	do
-		RESOURCE="$NUPK_REPOSITORY/$1/$i"
-		if [ -e $RESOURCE ]
-		then
-			cp $RESOURCE .
-		fi
-	done
+	# Build the package
 
-	# Copy all files that have been downloaded
-	# To be done: properly check which one are
-	# needed instead of copying whatever (not
-	# dangerous per se, just wasteful)
-
-	if [ $(ls -A "$NUPK_SOURCES/$1" | wc -l) -ne 0 ]
-	then
-		cp -r "$NUPK_SOURCES/$1/"* .
-	fi
-
-	# Export DESTDIR and actually build the package
-
-	export DESTDIR
 	printf "$NUPK_O Start!\n"
-	./NUPK_script.sh
+	./build
 
 	# Finalize the process by moving the archive to
 	# $NUPK_BINARIES and deleting all leftovers from
@@ -187,56 +165,14 @@ validate() {
 	done
 }
 
-download() {
-	# Set all variables related to the package's version and export them,
-	# so that they are available to the building script
-
-	if [ ! -d "$NUPK_SOURCES/$1" ]
-	then
-		mkdir -p "$NUPK_SOURCES/$1"
-	fi
-
-	# Fetch tarballs, git repos and alike from the web
-
-	for r in $SOURCES
-	do
-		if [ ! -e "$NUPK_REPOSITORY/$1/$r" ]
-		then
-			if [ ! -z $(echo $r | grep -E '\.git$|git:') ]
-			then
-				printf "$NUPK_O Cloning \033[32;1m$r\033[0m from repository...\n"
-				if [ -d "$NUPK_SOURCES/$1/$1.git" ]
-				then
-					cd "$NUPK_SOURCES/$1/$1.git"
-					git pull
-					cd $OLDPWD
-				else
-					git clone $r "$NUPK_SOURCES/$1/$1.git"
-				fi
-			else
-				B=$(basename $r)
-				printf "$NUPK_O Downloading \033[32;1m$B\033[0m...\n"
-				if [ ! -e "$NUPK_SOURCES/$1/$B" ]
-				then
-					curl $r -L --output "$NUPK_SOURCES/$1/$B"
-				else
-					printf "$NUPK_W File \033[34;1m$B\033[0m downloaded already!\n"
-				fi
-			fi
-		fi
-	done
-
-	printf "$NUPK_O Done!\n"
-}
-
 ### THE ACTUAL SCRIPT STARTS HERE ###
 
-while getopts "d:b:i:r:v" op
+while getopts "b:i:r:v" op
 do
 	# Check whether the three main directories exist
 	# To be done: also check whether their permissions have been set properly
 
-	for i in NUPK_REPOSITORY NUPK_INSTALLED NUPK_BINARIES NUPK_SOURCES NUPK_WORKDIR
+	for i in NUPK_REPOSITORY NUPK_INSTALLED NUPK_BINARIES NUPK_WORKDIR
 	do
 		D=$(eval 'printf ${'"$i"'}')
 		if [ ! -e $D ]
@@ -267,7 +203,7 @@ do
 
 	if [ $USER = "root" ]
 	then
-		if [ $op = 'd' ] || [ $op = 'b' ]
+		if [ $op = 'b' ]
 		then
 			printf "$NUPK_X Only non-root users can perform this operation!\n"
 			exit 1
@@ -286,11 +222,7 @@ do
 	source "$NUPK_REPOSITORY/$OPTARG/data"
 
 	case $op in
-	d)
-		download $OPTARG
-		;;
 	b)
-		download $OPTARG
 		build $OPTARG
 		;;
 	i)
