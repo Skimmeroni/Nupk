@@ -2,7 +2,8 @@
 
 for i in $(ls -1 "$NUPK_REPOSITORY")
 do
-	source "$NUPK_REPOSITORY/$i/data"
+	VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$i/build" | awk -F '=' '{print $2}')
+	PRETTY_NAME=$(grep '^PRETTY_NAME' "$NUPK_REPOSITORY/$i/build" | awk -F '=' '{print $2}')
 	NEWVERSION=$(curl -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
 	             "https://repology.org/badge/latest-versions/$PRETTY_NAME.svg?header=" | \
 	             xmllint --xpath '//*[name()="text"]/text()' - | \
