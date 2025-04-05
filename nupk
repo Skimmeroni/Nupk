@@ -2,28 +2,40 @@
 
 # The main dirs
 
-export NUPK_REPOSITORY="/var/db/nupk/repository"
-export NUPK_INSTALLED="/var/db/nupk/installed"
-export NUPK_BINARIES="/var/cache/nupk/binaries"
-export NUPK_WORKDIR="/var/tmp/nupk"
+NUPK_REPOSITORY="/var/db/nupk/repository"
+NUPK_INSTALLED="/var/db/nupk/installed"
+NUPK_BINARIES="/var/cache/nupk/binaries"
+NUPK_WORKDIR="/var/tmp/nupk"
 
-export NUPK_X="[\033[31;1mX\033[0m]"
-export NUPK_O="[\033[32;1mO\033[0m]"
-export NUPK_E="[\033[33;1m!\033[0m]"
-export NUPK_W="[\033[34;1m?\033[0m]"
+NUPK_X="[\033[31;1mX\033[0m]"
+NUPK_O="[\033[32;1mO\033[0m]"
+NUPK_E="[\033[33;1m!\033[0m]"
+
+in_red() {
+	printf "\033[31;1m$1\033[0m"
+}
+
+in_green() {
+	printf "\033[32;1m$1\033[0m"
+}
+
+in_yellow() {
+	printf "\033[33;1m$1\033[0m"
+}
 
 build() {
 	# Create the working directory; if it exists already, delete it.
 	# The directory is kept around only if the package failed to build,
 	# so that it can be fixed by hand
 
+	BUILDIR="$NUPK_WORKDIR/$1"
+
 	printf "$NUPK_O Creating the temporary working directory...\n"
-	if [ -d "$NUPK_WORKDIR/$1" ]
+	if [ -d $BUILDIR ]
 	then
-		rm -rf "$NUPK_WORKDIR/$1"
+		rm -rf $BUILDIR
 	fi
 
-	BUILDIR="$NUPK_WORKDIR/$1/NUPK_buildir"
 	mkdir -p $BUILDIR
 	cd $BUILDIR
 
@@ -42,18 +54,15 @@ build() {
 	# $NUPK_BINARIES and deleting all leftovers from
 	# $NUPK_WORKDIR
 
-	su
 	mv "$1@$VERSION.tar.gz" "$NUPK_BINARIES"
-	exit
-	rm -rf "$NUPK_WORKDIR/$1"
-	printf "$NUPK_O Package \033[32;1m$1\033[0m built and saved in $NUPK_BINARIES\n"
+	rm -rf $BUILDIR
+	printf "$NUPK_O Package %s built and saved in $NUPK_BINARIES\n" $(in_red $1)
 }
 
 install() {
 	# Create a manifest file out of the package archive
 	
-	gzip -cd "$NUPK_BINARIES/$1@$VERSION.tar.gz" | tar -t | sort -r | sed 's|^|/|g' | awk '{print $1}' > MANIFEST
-	printf "/\n" >> MANIFEST
+	gzip -cd "$NUPK_BINARIES/$1@$VERSION.tar.gz" | tar -t | sort -r | sed 's|^|/|g' | awk '{print $1} END {print "/"}' > MANIFEST
 
 	# A distinction between a fresh installation
 	# and an upgrade ought to be established
@@ -71,7 +80,7 @@ install() {
 	do
 		if [ -e $i ] && [ ! -d $i ]
 		then
-			printf "$NUPK_X File \033[31;1m$i\033[0m already exists!\n"
+			printf "$NUPK_X File %s already exists!\n" $(in_red $i)
 			exit 1
 		fi
 	done
@@ -109,7 +118,7 @@ install() {
 	cp "$NUPK_REPOSITORY/$1/data" "$NUPK_INSTALLED/$1/DATA"
 	gzip -cd "$NUPK_BINARIES/$1@$V.tar.gz" | tar -x -C /
 
-	printf "$NUPK_O Package \033[32;1m$1\033[0m installed\n"
+	printf "$NUPK_O Package %s installed\n" $(in_green $1)
 }
 
 remove() {
@@ -121,17 +130,17 @@ remove() {
 		if [ -f $i ]
 		then
 			rm $i
-			printf "$NUPK_O File \033[32;1m$i\033[0m removed\n"
+			printf "$NUPK_O File %s removed\n" $(in_green $i)
 		elif [ -h $i ]
 		then
 			unlink $i
-			printf "$NUPK_O Link \033[32;1m$i\033[0m removed\n"
+			printf "$NUPK_O Link %s removed\n" $(in_green $i)
 		elif [ $(ls -A $i | wc -l) -eq 0 ]
 		then
 			rmdir $i
-			printf "$NUPK_O Directory \033[32;1m$i\033[0m removed\n"
+			printf "$NUPK_O Directory %s removed\n" $(in_green $i)
 		else
-			printf "$NUPK_E Directory \033[33;1m$i\033[0m left untouched\n"
+			printf "$NUPK_E Directory %s left untouched\n" $(in_yellow $i)
 		fi
 	done
 
@@ -139,7 +148,7 @@ remove() {
 
 	rm -rf "$NUPK_INSTALLED/$1"
 
-	printf "$NUPK_O Package \033[32;1m$1\033[0m removed\n"
+	printf "$NUPK_O Package %s removed\n" $(in_green $1)
 }
 
 validate() {
@@ -151,15 +160,15 @@ validate() {
 	do
 		if [ -h $i ]
 		then
-			printf "$NUPK_O Symbolic link \033[32;1m$i\033[0m exists\n"
+			printf "$NUPK_O Symbolic link %s exists\n" $(in_green $i)
 		elif [ -d $i ]
 		then
-			printf "$NUPK_O Directory \033[32;1m$i\033[0m exists\n"
+			printf "$NUPK_O Directory %s exists\n" $(in_green $i)
 		elif [ -e $i ]
 		then
-			printf "$NUPK_O File \033[32;1m$i\033[0m exists\n"
+			printf "$NUPK_O File %s exists\n" $(in_green $i)
 		else
-			printf "$NUPK_X File or directory \033[31;1m$i\033[0m does not exist!\n"
+			printf "$NUPK_X File or directory %s does not exist!\n" $(in_red $i)
 			exit 1
 		fi
 	done
@@ -169,7 +178,7 @@ validate() {
 
 while getopts "b:i:r:v" op
 do
-	# Check whether the three main directories exist
+	# Check whether the main directories exist
 	# To be done: also check whether their permissions have been set properly
 
 	for i in NUPK_REPOSITORY NUPK_INSTALLED NUPK_BINARIES NUPK_WORKDIR
@@ -177,7 +186,7 @@ do
 		D=$(eval 'printf ${'"$i"'}')
 		if [ ! -e $D ]
 		then
-			printf "$NUPK_X Directory \033[31;1m$i\033[0m, set as \033[31;1m$D\033[0m, does not exist!\n"
+			printf "$NUPK_X Directory %s, set as %s, does not exist!\n" $(in_red $i) $(in_red $D)
 			exit 1
 		fi
 	done
@@ -186,7 +195,7 @@ do
 
 	if [ ! -e "$NUPK_REPOSITORY/$OPTARG" ]
 	then
-		printf "$NUPK_X Package \033[31;1m$OPTARG\033[0m does not exist!\n"
+		printf "$NUPK_X Package %s does not exist!\n" $(in_red $OPTARG)
 		exit 1
 	fi
 
@@ -196,7 +205,7 @@ do
 	then
 		if [ ! -e "$NUPK_INSTALLED/$OPTARG" ]
 		then
-			printf "$NUPK_X Package \033[31;1m$OPTARG\033[0m is not installed!\n"
+			printf "$NUPK_X Package %s is not installed!\n" $(in_red $OPTARG)
 			exit 1
 		fi
 	fi
@@ -218,8 +227,6 @@ do
 			exit 1
 		fi
 	fi
-
-	source "$NUPK_REPOSITORY/$OPTARG/data"
 
 	case $op in
 	b)
