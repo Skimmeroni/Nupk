@@ -35,12 +35,13 @@ ask_for_cleanup() {
 
 # Run a build script
 build() {
-	# TODO: refer to Class/Name as two variables
-	PACKAGE_NAME=$(basename $1)
-	COMPLETE_NAME=$(echo $1 | tr '/' '-')
+	# $1 is in the form PACKAGE_CLASS/PACKAGE_NAME
+	PACKAGE_CLASS="${1%/*}"
+	PACKAGE_NAME="${1#*/}"
+	SCRIPT_NAME="build-$PACKAGE_NAME.sh"
 
 	# Does a script actually exist?
-	if [ ! -f "$NUPK_REPOSITORY/$1/build-$PACKAGE_NAME.sh" ]
+	if [ ! -f "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" ]
 	then
 		error_message "A build script for this package could not be found!"
 		exit 1
@@ -49,7 +50,7 @@ build() {
 	fi
 
 	# Very stupid hack until we wrap the scripts content into a function
-	VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$1/build-$PACKAGE_NAME.sh" | awk -F '=' '{print $2}')
+	VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" | awk -F '=' '{print $2}')
 
 	# Is the VERSION variable around?
 	if [ -z $VERSION ]
@@ -57,11 +58,11 @@ build() {
 		error_message "The build script for $1 does not contain a VERSION variable!"
 		exit 1
 	else
-		ok_message "Got version: $VERSION"
+		ok_message "Found version: $VERSION"
 	fi
 
 	# Where the build will take place
-	BUILDIR="$NUPK_WORKDIR/$COMPLETE_NAME"
+	BUILDIR="$NUPK_WORKDIR/$PACKAGE_CLASS-$PACKAGE_NAME"
 
 	# Stop if the remnants of a previous build attempt are found
 	if [ -d $BUILDIR ]
@@ -75,12 +76,12 @@ build() {
 
 	# Copy the entire directory
 	ok_message "Copying build script and related material..."
-	cp -r "$NUPK_REPOSITORY/$1" $NUPK_WORKDIR/$COMPLETE_NAME
+	cp -r "$NUPK_REPOSITORY/$1" $BUILDIR
 	cd $BUILDIR
 
 	# Build the package
 	ok_message "Building directory prepared. Building $1"
-	./build-$PACKAGE_NAME.sh
+	./$SCRIPT_NAME
 
 	# Bail out on failure
 	if [ $? != 0 ]
@@ -95,7 +96,7 @@ build() {
 		exit 1
 	else
 		# Move the archive to $NUPK_BINARIES
-		mv "$COMPLETE_NAME@$VERSION.tar.gz" $NUPK_BINARIES
+		mv "$PACKAGE_CLASS-$PACKAGE_NAME@$VERSION.tar.gz" $NUPK_BINARIES
 		ok_message "$1 built and saved in $NUPK_BINARIES"
 
 		# Cleanup, if desired
