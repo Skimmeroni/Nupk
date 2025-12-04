@@ -39,9 +39,29 @@ build() {
 	PACKAGE_NAME=$(basename $1)
 	COMPLETE_NAME=$(echo $1 | tr '/' '-')
 
-	# Create the working directory
+	# Does a script actually exist?
+	if [ ! -f "$NUPK_REPOSITORY/$1/build-$PACKAGE_NAME.sh" ]
+	then
+		error_message "A build script for this package could not be found!"
+		exit 1
+	else
+		ok_message "Found a build script for $1"
+	fi
+
+	# Very stupid hack until we wrap the scripts content into a function
+	VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$1/build-$PACKAGE_NAME.sh" | awk -F '=' '{print $2}')
+
+	# Is the VERSION variable around?
+	if [ -z $VERSION ]
+	then
+		error_message "The build script for $1 does not contain a VERSION variable!"
+		exit 1
+	else
+		ok_message "Got version: $VERSION"
+	fi
+
+	# Where the build will take place
 	BUILDIR="$NUPK_WORKDIR/$COMPLETE_NAME"
-	ok_message "Copying build script and related material..."
 
 	# Stop if the remnants of a previous build attempt are found
 	if [ -d $BUILDIR ]
@@ -53,17 +73,8 @@ build() {
 		[ ! -d $BUILDIR ] || exit
 	fi
 
-	# Does a script actually exist?
-	if [ ! -e "$NUPK_REPOSITORY/$1/build-$PACKAGE_NAME.sh" ]
-	then
-		error_message "A build script for this package could not be found!"
-		exit 1
-	fi
-
-	# Very stupid hack until we wrap the scripts content into a function
-	VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$1/build-$PACKAGE_NAME.sh" | awk -F '=' '{print $2}')
-
 	# Copy the entire directory
+	ok_message "Copying build script and related material..."
 	cp -r "$NUPK_REPOSITORY/$1" $NUPK_WORKDIR/$COMPLETE_NAME
 	cd $BUILDIR
 
@@ -80,12 +91,13 @@ build() {
 		warning_message "Remove leftovers in $BUILDIR?"
 		ask_for_cleanup $BUILDIR
 
+		error_message "Building $1 failed!"
 		exit 1
 	else
 		# Move the archive to $NUPK_BINARIES
 		mv "$COMPLETE_NAME@$VERSION.tar.gz" $NUPK_BINARIES
 		ok_message "$1 built and saved in $NUPK_BINARIES"
-		
+
 		# Cleanup, if desired
 		warning_message "Remove leftovers in $BUILDIR?"
 		ask_for_cleanup $BUILDIR
