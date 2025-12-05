@@ -21,6 +21,48 @@ warning_message() {
 	printf "\033[33;1m@\033[0m \033[1m$1\033[0m\n"
 }
 
+fetch_latest_release() {
+	# $1 is in the form PACKAGE_CLASS/PACKAGE_NAME
+	PACKAGE_CLASS="${1%/*}"
+	PACKAGE_NAME="${1#*/}"
+	SCRIPT_NAME="build-$PACKAGE_NAME.sh"
+
+	# Does a script actually exist?
+	if [ ! -f "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" ]
+	then
+		error_message "A build script for this package could not be found!"
+		exit 1
+	fi
+
+	# Very stupid hack until we wrap the scripts content into a function
+	VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" | awk -F '=' '{print $2}')
+
+	# Is the VERSION variable around?
+	if [ -z $VERSION ]
+	then
+		error_message "The build script for $1 does not contain a VERSION variable!"
+		exit 1
+	fi
+
+	# Very stupid hack until we wrap the scripts content into a function
+	PRETTY_NAME=$(grep '^PRETTY_NAME' "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" | awk -F '=' '{print $2}')
+
+	# Is the VERSION variable around?
+	if [ -z $PRETTY_NAME ]
+	then
+		error_message "The build script for $1 does not contain a PRETTY_NAME variable!"
+		exit 1
+	fi
+
+	V=$(curl -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+	    "https://repology.org/api/v1/project/$PRETTY_NAME" | \
+	    jq -r --arg pretty_name $PRETTY_NAME --arg name $PACKAGE_NAME \
+	    'map(select(.srcname == $pretty_name or .srcname == $name) | select(.status == "newest" or .status == "unique") | .version) | unique | max' | \
+	    sed -e 's|[-|_]|\.|g' -e 's|\.0*$||')
+
+	echo $V
+}
+
 ask_for_cleanup() {
 	printf "\033[1mYour response: [Y/n] \033[0m"
 	read -r
