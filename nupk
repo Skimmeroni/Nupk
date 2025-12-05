@@ -22,38 +22,6 @@ warning_message() {
 }
 
 fetch_latest_release() {
-	# $1 is in the form PACKAGE_CLASS/PACKAGE_NAME
-	PACKAGE_CLASS="${1%/*}"
-	PACKAGE_NAME="${1#*/}"
-	SCRIPT_NAME="build-$PACKAGE_NAME.sh"
-
-	# Does a script actually exist?
-	if [ ! -f "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" ]
-	then
-		error_message "A build script for this package could not be found!"
-		exit 1
-	fi
-
-	# Very stupid hack until we wrap the scripts content into a function
-	VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" | awk -F '=' '{print $2}')
-
-	# Is the VERSION variable around?
-	if [ -z $VERSION ]
-	then
-		error_message "The build script for $1 does not contain a VERSION variable!"
-		exit 1
-	fi
-
-	# Very stupid hack until we wrap the scripts content into a function
-	PRETTY_NAME=$(grep '^PRETTY_NAME' "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" | awk -F '=' '{print $2}')
-
-	# Is the VERSION variable around?
-	if [ -z $PRETTY_NAME ]
-	then
-		error_message "The build script for $1 does not contain a PRETTY_NAME variable!"
-		exit 1
-	fi
-
 	V=$(curl -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
 	    "https://repology.org/api/v1/project/$PRETTY_NAME" | \
 	    jq -r --arg pretty_name $PRETTY_NAME --arg name $PACKAGE_NAME \
@@ -75,91 +43,11 @@ ask_for_cleanup() {
 	fi
 }
 
-# Run a build script
-build() {
-	# $1 is in the form PACKAGE_CLASS/PACKAGE_NAME
-	PACKAGE_CLASS="${1%/*}"
-	PACKAGE_NAME="${1#*/}"
-	SCRIPT_NAME="build-$PACKAGE_NAME.sh"
-
-	# Does a script actually exist?
-	if [ ! -f "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" ]
-	then
-		error_message "A build script for this package could not be found!"
-		exit 1
-	else
-		ok_message "Found a build script for $1"
-	fi
-
-	# Very stupid hack until we wrap the scripts content into a function
-	VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" | awk -F '=' '{print $2}')
-
-	# Is the VERSION variable around?
-	if [ -z $VERSION ]
-	then
-		error_message "The build script for $1 does not contain a VERSION variable!"
-		exit 1
-	else
-		ok_message "Found version: $VERSION"
-	fi
-
-	# Where the build will take place
-	BUILDIR="$NUPK_WORKDIR/$PACKAGE_CLASS-$PACKAGE_NAME"
-
-	# Stop if the remnants of a previous build attempt are found
-	if [ -d $BUILDIR ]
-	then
-		warning_message "Directory $BUILDIR already exists! Remove it now?"
-		ask_for_cleanup $BUILDIR
-		# If the directory is still there, i.e. the answer was 'no',
-		# respect said choice
-		[ ! -d $BUILDIR ] || exit
-	fi
-
-	# Copy the entire directory
-	ok_message "Copying build script and related material..."
-	cp -r "$NUPK_REPOSITORY/$1" $BUILDIR
-	cd $BUILDIR
-
-	# Build the package
-	ok_message "Building directory prepared. Building $1"
-	./$SCRIPT_NAME
-
-	# Bail out on failure
-	if [ $? != 0 ]
-	then
-		error_message "Something has gone terribly wrong!"
-
-		# Cleanup, if desired
-		warning_message "Remove leftovers in $BUILDIR?"
-		ask_for_cleanup $BUILDIR
-
-		error_message "Building $1 failed!"
-		exit 1
-	else
-		# Move the archive to $NUPK_BINARIES
-		mv "$PACKAGE_CLASS-$PACKAGE_NAME@$VERSION.tar.gz" $NUPK_BINARIES
-		ok_message "$1 built and saved in $NUPK_BINARIES"
-
-		# Cleanup, if desired
-		warning_message "Remove leftovers in $BUILDIR?"
-		ask_for_cleanup $BUILDIR
-	fi
-}
-
-# TODO
-#install() {
-#}
-
-# TODO
-#validate() {
-#}
-
-# TODO
-#update() {
-#}
-
-### THE ACTUAL SCRIPT STARTS HERE ###
+# b) build a package
+# TODO i) install a package
+# TODO v) validate a manifest file
+# TODO c) compare the current and the latest known version
+# TODO u) compare each version to the latest versions
 
 while getopts "b:" op
 do
@@ -189,9 +77,80 @@ do
 		exit 1
 	fi
 
+	# $OPTARG is in the form PACKAGE_CLASS/PACKAGE_NAME
+	PACKAGE_CLASS="${OPTARG%/*}"
+	PACKAGE_NAME="${OPTARG#*/}"
+	SCRIPT_NAME="build-$PACKAGE_NAME.sh"
+
+	# Does a script actually exist?
+	if [ ! -f "$NUPK_REPOSITORY/$OPTARG/$SCRIPT_NAME" ]
+	then
+		error_message "A build script for this package could not be found!"
+		exit 1
+	fi
+
+	# Very stupid hack until we wrap the scripts content into a function
+	VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$OPTARG/$SCRIPT_NAME" | awk -F '=' '{print $2}')
+	PRETTY_NAME=$(grep '^PRETTY_NAME' "$NUPK_REPOSITORY/$OPTARG/$SCRIPT_NAME" | awk -F '=' '{print $2}')
+
+	# Is the VERSION variable around?
+	if [ -z $VERSION ]
+	then
+		error_message "The build script for $OPTARG does not contain a VERSION variable!"
+		exit 1
+	fi
+
+	# Is the VERSION variable around?
+	if [ -z $PRETTY_NAME ]
+	then
+		error_message "The build script for $OPTARG does not contain a PRETTY_NAME variable!"
+		exit 1
+	fi
+
 	case $op in
 	b)
-		build $OPTARG
-		;;
+		# Where the build will take place
+		BUILDIR="$NUPK_WORKDIR/$PACKAGE_CLASS-$PACKAGE_NAME"
+
+		# Stop if the remnants of a previous build attempt are found
+		if [ -d $BUILDIR ]
+		then
+			warning_message "Directory $BUILDIR already exists! Remove it now?"
+			ask_for_cleanup $BUILDIR
+			# If the directory is still there, i.e. the answer was 'no',
+			# respect said choice
+			[ ! -d $BUILDIR ] || exit
+		fi
+
+		# Copy the entire directory
+		ok_message "Copying build script and related material..."
+		cp -r "$NUPK_REPOSITORY/$OPTARG" $BUILDIR
+		cd $BUILDIR
+
+		# Build the package
+		ok_message "Building directory prepared. Building $OPTARG"
+		./$SCRIPT_NAME
+
+		# Bail out on failure
+		if [ $? != 0 ]
+		then
+			error_message "Something has gone terribly wrong!"
+
+			# Cleanup, if desired
+			warning_message "Remove leftovers in $BUILDIR?"
+			ask_for_cleanup $BUILDIR
+
+			error_message "Building $OPTARG failed!"
+			exit 1
+		else
+			# Move the archive to $NUPK_BINARIES
+			mv "$PACKAGE_CLASS-$PACKAGE_NAME@$VERSION.tar.gz" $NUPK_BINARIES
+			ok_message "$OPTARG built and saved in $NUPK_BINARIES"
+
+			# Cleanup, if desired
+			warning_message "Remove leftovers in $BUILDIR?"
+			ask_for_cleanup $BUILDIR
+		fi
+	;;
 	esac
 done
