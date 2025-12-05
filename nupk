@@ -28,7 +28,7 @@ fetch_latest_release() {
 	    'map(select(.srcname == $pretty_name or .srcname == $name) | select(.status == "newest" or .status == "unique") | .version) | unique | max' | \
 	    sed -e 's|[-|_]|\.|g' -e 's|\.0*$||')
 
-	echo $V
+	printf "%s\n" $V
 }
 
 ask_for_cleanup() {
@@ -78,8 +78,8 @@ do
 	fi
 
 	# $OPTARG is in the form PACKAGE_CLASS/PACKAGE_NAME
-	PACKAGE_CLASS="${OPTARG%/*}"
-	PACKAGE_NAME="${OPTARG#*/}"
+	PACKAGE_CLASS=$(printf "%s\n" $OPTARG | cut -d / -f 1)
+	PACKAGE_NAME=$(printf "%s\n" $OPTARG | cut -d / -f 2)
 	SCRIPT_NAME="build-$PACKAGE_NAME.sh"
 
 	# Does a script actually exist?
@@ -90,8 +90,8 @@ do
 	fi
 
 	# Very stupid hack until we wrap the scripts content into a function
-	VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$OPTARG/$SCRIPT_NAME" | awk -F '=' '{print $2}')
-	PRETTY_NAME=$(grep '^PRETTY_NAME' "$NUPK_REPOSITORY/$OPTARG/$SCRIPT_NAME" | awk -F '=' '{print $2}')
+	VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$OPTARG/$SCRIPT_NAME" | cut -d = -f 2)
+	PRETTY_NAME=$(grep '^PRETTY_NAME' "$NUPK_REPOSITORY/$OPTARG/$SCRIPT_NAME" | cut -d = -f 2)
 
 	# Is the VERSION variable around?
 	if [ -z $VERSION ]
