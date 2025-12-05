@@ -84,6 +84,14 @@ check_for_package_consistency() {
 	fi
 }
 
+check_argnum() {
+	if [ $1 != $(($2 - 1)) ]
+	then
+		error_message "Wrong number of arguments: expected $1, got $(($2 - 1))"
+		exit 1
+	fi
+}
+
 # b) build a package
 # TODO i) install a package
 # TODO v) validate a manifest file
@@ -114,6 +122,7 @@ do
 			exit 1
 		fi
 
+		check_argnum 1 $#
 		check_for_package_consistency $OPTARG
 
 		PACKAGE_CLASS=$(printf "%s\n" $OPTARG | cut -d / -f 1)
@@ -166,6 +175,7 @@ do
 		fi
 		;;
 	c)
+		check_argnum 1 $#
 		check_for_package_consistency $OPTARG
 
 		PACKAGE_NAME=$(printf "%s\n" $OPTARG | cut -d / -f 2)
@@ -178,6 +188,8 @@ do
 		printf "You have: %s\nRepology has: %s\n" $VERSION $REPOLOGY_VERSION
 		;;
 	t)
+		check_argnum 3 $#
+
 		printf "#!/bin/sh\n"
 		printf "\n"
 		printf "set -eu\n"
