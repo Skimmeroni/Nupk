@@ -89,8 +89,9 @@ check_for_package_consistency() {
 # TODO v) validate a manifest file
 # c) compare the current version and the latest version known to Repology
 # TODO u) compare all current versions and the latest versions known to Repology
+# t) generate a template
 
-while getopts "b:c:" op
+while getopts "b:c:t:" op
 do
 	# Check if the main directories exist
 	# TODO: also check if their permissions have been set properly
@@ -175,6 +176,33 @@ do
 
 		REPOLOGY_VERSION=$(fetch_latest_release $OPTARG)
 		printf "You have: %s\nRepology has: %s\n" $VERSION $REPOLOGY_VERSION
+		;;
+	t)
+		printf "#!/bin/sh\n"
+		printf "\n"
+		printf "set -eu\n"
+		printf "\n"
+		printf "PRETTY_NAME=$3\n"
+		printf "MAJOR=\n"
+		printf "MINOR=\n"
+		printf "PATCH=\n"
+		printf "VERSION=$4\n"
+		printf "\n"
+		printf "DESTDIR=\"\$PWD/temporary-destdir\"\n"
+		printf "[ -d \$DESTDIR ] || mkdir -p \$DESTDIR\n"
+		printf "\n"
+		printf "# curl --location --remote-name --skip-existing ???\n"
+		printf "# git clone ???\n"
+		printf "\n"
+		printf "# gzip/xz/bzip2 -cd ???-\$VERSION.tar.gz/xz/bz2 | tar -x\n"
+		printf "# cd ???-\$VERSION\n"
+		printf "\n"
+		printf "# ???\n"
+		printf "\n"
+		printf "doas chown -R root:root \$DESTDIR\n"
+		printf "cd \$DESTDIR\n"
+		printf "doas sh -c \"tar -cf - * | gzip > ../$2-$3@\$VERSION.tar.gz\"\n"
+		printf "doas rm -rf \$DESTDIR\n"
 		;;
 	esac
 done
