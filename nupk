@@ -46,10 +46,10 @@ ask_for_cleanup() {
 # b) build a package
 # TODO i) install a package
 # TODO v) validate a manifest file
-# TODO c) compare the current and the latest known version
-# TODO u) compare each version to the latest versions
+# c) compare the current version and the latest version known to Repology
+# TODO u) compare all current versions and the latest versions known to Repology
 
-while getopts "b:" op
+while getopts "b:c:" op
 do
 	# Check if the main directories exist
 	# TODO: also check if their permissions have been set properly
@@ -67,13 +67,6 @@ do
 	if [ ! -d "$NUPK_REPOSITORY/$OPTARG" ]
 	then
 		error_message "Package $OPTARG does not exist!"
-		exit 1
-	fi
-
-	# Prevent root from running a build script
-	if [ $(id -u) == 0 ] && [ $op = 'b' ]
-	then
-		error_message "Only non-root users can build packages"
 		exit 1
 	fi
 
@@ -100,7 +93,7 @@ do
 		exit 1
 	fi
 
-	# Is the VERSION variable around?
+	# Is the PRETTY_NAME variable around?
 	if [ -z $PRETTY_NAME ]
 	then
 		error_message "The build script for $OPTARG does not contain a PRETTY_NAME variable!"
@@ -109,6 +102,13 @@ do
 
 	case $op in
 	b)
+		# Prevent root from running a build script
+		if [ $(id -u) == 0 ]
+		then
+			error_message "Only non-root users can build packages"
+			exit 1
+		fi
+
 		# Where the build will take place
 		BUILDIR="$NUPK_WORKDIR/$PACKAGE_CLASS-$PACKAGE_NAME"
 
@@ -151,6 +151,10 @@ do
 			warning_message "Remove leftovers in $BUILDIR?"
 			ask_for_cleanup $BUILDIR
 		fi
-	;;
+		;;
+	c)
+		REPOLOGY_VERSION=$(fetch_latest_release $OPTARG)
+		printf "You have: %s\nRepology has: %s\n" $VERSION $REPOLOGY_VERSION
+		;;
 	esac
 done
