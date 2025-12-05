@@ -35,8 +35,8 @@ fetch_latest_release() {
 
 ask_for_cleanup() {
 	printf "\033[1mYour response: [Y/n] \033[0m"
-	read -r
-	if [ $REPLY == 'Y' ] || [ $REPLY == 'y' ]
+	read -r REPLY
+	if [ $REPLY = 'Y' ] || [ $REPLY = 'y' ]
 	then
 		rm -rf $1
 		ok_message "Removed $1"
@@ -116,7 +116,7 @@ do
 	case $op in
 	b)
 		# Prevent root from running a build script
-		if [ $(id -u) == 0 ]
+		if [ $(id -u) = 0 ]
 		then
 			error_message "Only non-root users can build packages"
 			exit 1
@@ -216,6 +216,9 @@ do
 		cd \$DESTDIR\n\
 		doas sh -c \"tar -cf - * | gzip > ../$2-$3@\$VERSION.tar.gz\"\n\
 		doas rm -rf \$DESTDIR\n" | tr -d '\t'
+		;;
+	*)
+		error_message "Huh?"
 		;;
 	esac
 done
