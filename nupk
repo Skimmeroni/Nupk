@@ -96,10 +96,10 @@ check_argnum() {
 # TODO i) install a package
 # TODO v) validate a manifest file
 # c) compare the current version and the latest version known to Repology
-# TODO u) compare all current versions and the latest versions known to Repology
+# u) compare all current versions and the latest versions known to Repology
 # t) generate a template
 
-while getopts "b:c:t:" op
+while getopts "b:c:t:u" op
 do
 	# Check if the main directories exist
 	# TODO: also check if their permissions have been set properly
@@ -217,8 +217,34 @@ do
 		doas sh -c \"tar -cf - * | gzip > ../%s-%s@\$VERSION.tar.gz\"\n\
 		doas rm -rf \$DESTDIR\n" "$3" "$4" "$2" "$3" | tr -d '\t'
 		;;
+	u)
+		# NOTE: shaky
+		for i in $(cd $NUPK_REPOSITORY; find * -type d -mindepth 1)
+		do
+			check_for_package_consistency "$i"
+
+			PACKAGE_CLASS=$(printf "%s\n" "$i" | cut -d / -f 1)
+			PACKAGE_NAME=$(printf "%s\n" "$i" | cut -d / -f 2)
+			SCRIPT_NAME="build-$PACKAGE_NAME.sh"
+			REPOLOGY_VERSION=$(fetch_latest_release "$i")
+			# !!!
+			VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$i/$SCRIPT_NAME" | cut -d = -f 2)
+			PRETTY_NAME=$(grep '^PRETTY_NAME' "$NUPK_REPOSITORY/$i/$SCRIPT_NAME" | cut -d = -f 2)
+
+			if [ "$VERSION" = "git" ]
+			then
+				ok_message "$i ignored (cloned from git repo)"
+			elif [ "$REPOLOGY_VERSION" = "null" ]
+			then
+				error_message "$i not found!"
+			elif [ "$VERSION" != "$REPOLOGY_VERSION" ]
+			then
+				warning_message "$i can be upgraded from $VERSION to $REPOLOGY_VERSION"
+			fi
+		done
+		;;
 	*)
-		error_message "Huh?"
+		error_message "What? Valid options are -b, -c, -t, -u"
 		;;
 	esac
 done
