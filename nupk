@@ -12,15 +12,15 @@ NUPK_BINARIES="/var/cache/nupk"
 NUPK_WORKDIR="/var/tmp/nupk"
 
 error_message() {
-	printf "\033[31;1m@\033[0m \033[1m$1\033[0m\n"
+	printf "\033[31;1m@\033[0m \033[1m%s\033[0m\n" "$1"
 }
 
 ok_message() {
-	printf "\033[32;1m@\033[0m \033[1m$1\033[0m\n"
+	printf "\033[32;1m@\033[0m \033[1m%s\033[0m\n" "$1"
 }
 
 warning_message() {
-	printf "\033[33;1m@\033[0m \033[1m$1\033[0m\n"
+	printf "\033[33;1m@\033[0m \033[1m%s\033[0m\n" "$1"
 }
 
 fetch_latest_release() {
@@ -195,11 +195,11 @@ do
 		\n\
 		set -eu\n\
 		\n\
-		PRETTY_NAME=$3\n\
+		PRETTY_NAME=%s\n\
 		MAJOR=\n\
 		MINOR=\n\
 		PATCH=\n\
-		VERSION=$4\n\
+		VERSION=%s\n\
 		\n\
 		DESTDIR=\"\$PWD/temporary-destdir\"\n\
 		[ -d \$DESTDIR ] || mkdir -p \$DESTDIR\n\
@@ -214,8 +214,8 @@ do
 		\n\
 		doas chown -R root:root \$DESTDIR\n\
 		cd \$DESTDIR\n\
-		doas sh -c \"tar -cf - * | gzip > ../$2-$3@\$VERSION.tar.gz\"\n\
-		doas rm -rf \$DESTDIR\n" | tr -d '\t'
+		doas sh -c \"tar -cf - * | gzip > ../%s-%s@\$VERSION.tar.gz\"\n\
+		doas rm -rf \$DESTDIR\n" "$3" "$4" "$2" "$3" | tr -d '\t'
 		;;
 	*)
 		error_message "Huh?"
