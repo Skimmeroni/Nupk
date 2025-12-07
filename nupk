@@ -45,7 +45,7 @@ ask_for_cleanup() {
 	fi
 }
 
-check_for_package_consistency() {
+fetch_variables() {
 	# Check if the package actually exist
 	if [ ! -d "$NUPK_REPOSITORY/$1" ]
 	then
@@ -54,9 +54,9 @@ check_for_package_consistency() {
 	fi
 
 	# $OPTARG is in the form PACKAGE_CLASS/PACKAGE_NAME
-	PACKAGE_CLASS=$(printf "%s\n" "$1" | cut -d / -f 1)
-	PACKAGE_NAME=$(printf "%s\n" "$1" | cut -d / -f 2)
-	SCRIPT_NAME="build-$PACKAGE_NAME.sh"
+	export PACKAGE_CLASS=$(printf "%s\n" "$1" | cut -d / -f 1)
+	export PACKAGE_NAME=$(printf "%s\n" "$1" | cut -d / -f 2)
+	export SCRIPT_NAME="build-$PACKAGE_NAME.sh"
 
 	# Does a script actually exist?
 	if [ ! -f "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" ]
@@ -66,8 +66,9 @@ check_for_package_consistency() {
 	fi
 
 	# Very stupid hack until we wrap the scripts content into a function
-	VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" | cut -d = -f 2)
-	PRETTY_NAME=$(grep '^PRETTY_NAME' "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" | cut -d = -f 2)
+	# . ./"$NUPK_REPOSITORY/$1/$SCRIPT_NAME"
+	export VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" | cut -d = -f 2)
+	export PRETTY_NAME=$(grep '^PRETTY_NAME' "$NUPK_REPOSITORY/$1/$SCRIPT_NAME" | cut -d = -f 2)
 
 	# Is the VERSION variable around?
 	if [ -z "$VERSION" ]
@@ -123,13 +124,7 @@ do
 		fi
 
 		check_argnum 1 $#
-		check_for_package_consistency "$OPTARG"
-
-		PACKAGE_CLASS=$(printf "%s\n" "$OPTARG" | cut -d / -f 1)
-		PACKAGE_NAME=$(printf "%s\n" "$OPTARG" | cut -d / -f 2)
-		SCRIPT_NAME="build-$PACKAGE_NAME.sh"
-		# !!!
-		VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$OPTARG/$SCRIPT_NAME" | cut -d = -f 2)
+		fetch_variables "$OPTARG"
 
 		# Where the build will take place
 		BUILDIR="$NUPK_WORKDIR/$PACKAGE_CLASS-$PACKAGE_NAME"
@@ -176,13 +171,7 @@ do
 		;;
 	c)
 		check_argnum 1 $#
-		check_for_package_consistency "$OPTARG"
-
-		PACKAGE_NAME=$(printf "%s\n" "$OPTARG" | cut -d / -f 2)
-		SCRIPT_NAME="build-$PACKAGE_NAME.sh"
-		# !!!
-		VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$OPTARG/$SCRIPT_NAME" | cut -d = -f 2)
-		PRETTY_NAME=$(grep '^PRETTY_NAME' "$NUPK_REPOSITORY/$OPTARG/$SCRIPT_NAME" | cut -d = -f 2)
+		fetch_variables "$OPTARG"
 
 		REPOLOGY_VERSION=$(fetch_latest_release "$OPTARG")
 		printf "You have: %s\nRepology has: %s\n" "$VERSION" "$REPOLOGY_VERSION"
@@ -221,15 +210,8 @@ do
 		# NOTE: shaky
 		for i in $(cd $NUPK_REPOSITORY; find * -type d -mindepth 1)
 		do
-			check_for_package_consistency "$i"
-
-			PACKAGE_CLASS=$(printf "%s\n" "$i" | cut -d / -f 1)
-			PACKAGE_NAME=$(printf "%s\n" "$i" | cut -d / -f 2)
-			SCRIPT_NAME="build-$PACKAGE_NAME.sh"
+			fetch_variables "$i"
 			REPOLOGY_VERSION=$(fetch_latest_release "$i")
-			# !!!
-			VERSION=$(grep '^VERSION' "$NUPK_REPOSITORY/$i/$SCRIPT_NAME" | cut -d = -f 2)
-			PRETTY_NAME=$(grep '^PRETTY_NAME' "$NUPK_REPOSITORY/$i/$SCRIPT_NAME" | cut -d = -f 2)
 
 			if [ "$VERSION" = "git" ]
 			then
