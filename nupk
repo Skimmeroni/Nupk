@@ -229,7 +229,8 @@ do
 			elif [ "$REPOLOGY_VERSION" = "null" ]
 			then
 				error_message "$i not found!"
-			elif [ "$VERSION" != "$REPOLOGY_VERSION" ]
+			# Remove trailing zeros to remove ambiguity
+			elif [ "${VERSION%.0*}" != "${REPOLOGY_VERSION%.0*}" ]
 			then
 				warning_message "$i can be upgraded from $VERSION to $REPOLOGY_VERSION"
 			fi
