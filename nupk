@@ -159,15 +159,25 @@ do
 
 			error_message "Building $OPTARG failed!"
 			exit 1
-		else
-			# Move the archive to $NUPK_BINARIES
-			mv "$PACKAGE_CLASS-$PACKAGE_NAME@$VERSION.tar.gz" "$NUPK_BINARIES"
-			ok_message "$OPTARG built and saved in $NUPK_BINARIES"
+		fi
 
-			# Cleanup, if desired
+		PACKAGE_TARBALL="$PACKAGE_CLASS-$PACKAGE_NAME@$VERSION.tar.gz"
+		if [ ! -f "$PACKAGE_TARBALL" ]
+		then
+			error_message "$PACKAGE_TARBALL not found!"
+
 			warning_message "Remove leftovers in $BUILDIR?"
 			ask_for_cleanup "$BUILDIR"
+			exit 1
 		fi
+
+		# Move the archive to $NUPK_BINARIES
+		mv "$PACKAGE_TARBALL" "$NUPK_BINARIES"
+		ok_message "$OPTARG built and saved in $NUPK_BINARIES"
+
+		# Cleanup, if desired
+		warning_message "Remove leftovers in $BUILDIR?"
+		ask_for_cleanup "$BUILDIR"
 		;;
 	c)
 		check_argnum 1 $#
