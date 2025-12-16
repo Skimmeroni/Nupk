@@ -187,7 +187,76 @@ do
 		printf "You have: %s\nRepology has: %s\n" "$VERSION" "$REPOLOGY_VERSION"
 		;;
 	t)
-		check_argnum 3 $#
+		check_argnum 5 $#
+
+		# Note: not exactly foolproof, but should return a template
+		# that is reasonably complete
+		SOURCES_STUB=""
+		EXTENSION="${5##*.}"
+		FILE=$(basename $5)
+		if [ $EXTENSION == "git" ]
+		then
+			SOURCES_STUB="git clone $5\n\ncd $FILE"
+		else
+			SOURCES_STUB="curl --location --remote-name --skip-existing $5"
+			case $EXTENSION in
+			"gz") SOURCES_STUB="$SOURCES_STUB\n\ngzip -cd $FILE | tar -x\ncd ???" ;;
+			"xz") SOURCES_STUB="$SOURCES_STUB\n\nxz -cd $FILE | tar -x\ncd ???" ;;
+			"bz2") SOURCES_STUB="$SOURCES_STUB\n\nbzip2 -cd $FILE | tar -x\ncd ???" ;;
+			"lz") SOURCES_STUB="$SOURCES_STUB\n\nlzip -cd $FILE | tar -x\ncd ???" ;;
+			"zip") SOURCES_STUB="$SOURCES_STUB\n\nunzip $FILE\ncd ???" ;;
+			*) ;;
+			esac
+		fi
+
+		BUILD_STUB=""
+		case "$6" in
+		"meson")
+			BUILD_STUB="\
+			meson setup \\\\\n\
+			-D prefix=/usr \\\\\n\
+			-D buildtype=release \\\\\n\
+			-D wrap_mode=nofallback \\\\\n\
+			-D default_library=both \\\\\n\
+			-D strip=yes \\\\\n\
+			#-D ??? \\\\\n\
+			build\n\
+			\n\
+			meson compile -C build --verbose\n\
+			meson install -C build --destdir \$DESTDIR"
+			;;
+		"make")
+			BUILD_STUB="\
+			make\n\
+			make DESTDIR=\$DESTDIR install"
+			;;
+		"cmake")
+			BUILD_STUB="\
+			cmake -B build \\\\\n\
+			-D CMAKE_INSTALL_PREFIX=/usr \\\\\n\
+			-D CMAKE_BUILD_TYPE=Release \\\\\n\
+			#-D ??? \\\\\n\
+			-G Ninja\n\
+			\n\
+			cmake --build build --verbose\n\
+			DESTDIR=\$DESTDIR cmake --install build --strip"
+			;;
+		"configure")
+			BUILD_STUB="\
+			./configure \\\\\n\
+			--prefix=/usr \\\\\n\
+			--enable-shared \\\\\n\
+			--enable-static \\\\\n\
+			#--??? \n\
+			\n\
+			make\n\
+			make DESTDIR=\$DESTDIR install-strip"
+			;;
+		"gpep")
+			BUILD_STUB="gpep517 install-from-source --optimize all --destdir \$DESTDIR"
+			;;
+		*) ;;
+		esac
 
 		printf "\
 		#!/bin/sh\n\
@@ -203,13 +272,9 @@ do
 		DESTDIR=\"\$PWD/temporary-destdir\"\n\
 		[ -d \$DESTDIR ] || mkdir -p \$DESTDIR\n\
 		\n\
-		# curl --location --remote-name --skip-existing ???\n\
-		# git clone ???\n\
+		$SOURCES_STUB\n\
 		\n\
-		# gzip/xz/bzip2 -cd ???-\$VERSION.tar.gz/xz/bz2 | tar -x\n\
-		# cd ???-\$VERSION\n\
-		\n\
-		# ???\n\
+		$BUILD_STUB\n\
 		\n\
 		doas chown -R root:root \$DESTDIR\n\
 		cd \$DESTDIR\n\
