@@ -54,8 +54,8 @@ fetch_variables() {
 	fi
 
 	# $OPTARG is in the form PACKAGE_CLASS/PACKAGE_NAME
-	export PACKAGE_CLASS=${1%/*}
-	export PACKAGE_NAME=${1#*/}
+	export PACKAGE_CLASS="${1%/*}"
+	export PACKAGE_NAME="${1#*/}"
 	export SCRIPT_NAME="build-$PACKAGE_NAME.sh"
 
 	# Does a script actually exist?
@@ -194,8 +194,8 @@ do
 		# that is reasonably complete
 		SOURCES_STUB=""
 		EXTENSION="${5##*.}"
-		FILE=$(basename $5)
-		if [ $EXTENSION == "git" ]
+		FILE=$(basename "$5")
+		if [ "$EXTENSION" = "git" ]
 		then
 			SOURCES_STUB="git clone $5\n\ncd $FILE"
 		else
@@ -332,9 +332,9 @@ do
 		mv "/tmp/$PACKAGE_MANIFEST.new" "$NUPK_INSTALLED/$PACKAGE_MANIFEST"
 
 		# Remove leftovers, if there are any
-		if [ ! -z "$LEFTOVERS" ]
+		if [ -n "$LEFTOVERS" ]
 		then
-			for t in "$LEFTOVERS"
+			for t in $LEFTOVERS
 			do
 				if [ -h "$t" ]
 				then
