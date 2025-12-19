@@ -219,7 +219,7 @@ do
 			-D buildtype=release \\\\\n\
 			-D wrap_mode=nofallback \\\\\n\
 			-D default_library=both \\\\\n\
-			-D strip=yes \\\\\n\
+			-D strip=true \\\\\n\
 			#-D ??? \\\\\n\
 			build\n\
 			\n\
