@@ -328,12 +328,15 @@ do
 		fi
 
 		# Extract the content to / and move the manifest file
+		# TODO: this is not POSIX!
+		ok_message "Unpacking..."
 		tar -xpf "$NUPK_BINARIES/$PACKAGE_TARBALL" -C /
 		mv "/tmp/$PACKAGE_MANIFEST.new" "$NUPK_INSTALLED/$PACKAGE_MANIFEST"
 
 		# Remove leftovers, if there are any
 		if [ -n "$LEFTOVERS" ]
 		then
+			ok_message "Removing files from the previous version..."
 			for t in $LEFTOVERS
 			do
 				if [ -h "$t" ]
@@ -349,6 +352,7 @@ do
 			done
 		fi
 
+		sync
 		ok_message "Installed $OPTARG"
 		;;
 	u)
