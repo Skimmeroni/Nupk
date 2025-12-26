@@ -256,6 +256,12 @@ do
 		"gpep")
 			BUILD_STUB="gpep517 install-from-source --optimize all --destdir \$DESTDIR"
 			;;
+		"cargo")
+			BUILD_STUB="\
+			cargo fetch\n\
+			RUSTFLAGS="$RUSTFLAGS -C strip=symbols" cargo build --frozen --release\n\
+			#install ???"
+			;;
 		*) ;;
 		esac
 
