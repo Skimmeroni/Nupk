@@ -351,7 +351,7 @@ do
 				elif [ -f "$t" ]
 				then
 					rm "$t"
-				elif [ -d "$t" ]
+				elif [ -d "$t" ] && [ -z "$(ls -A $t)" ]
 				then
 					rmdir "$t"
 				fi
